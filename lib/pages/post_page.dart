@@ -1,0 +1,619 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import '../widgets/custom_bottom_nav.dart';
+
+class PostPage extends StatefulWidget {
+  const PostPage({super.key});
+
+  @override
+  State<PostPage> createState() => _PostPageState();
+}
+
+class _PostPageState extends State<PostPage> {
+  final List<String> _availableTags = [
+    'All',
+    'Competition',
+    'Camp & Workshop',
+    'Business & Startup',
+    'Tech & AI',
+    'Creative & Design',
+    'Other',
+  ];
+  final List<String> _selectedTags = [];
+  final List<File> _selectedImages = [];
+  final ImagePicker _picker = ImagePicker();
+  DateTime? _selectedDate;
+  bool _isActivitySelected = true;
+  final List<String> _selectedTypes = [];
+
+  final List<String> _competitionTypes = [
+    'Software & App Development',
+    'Data Science & AI',
+    'Cybersecurity',
+    'Business & Strategy',
+    'Hardware & Engineering',
+    'Design & Creative',
+  ];
+
+  Future<void> _pickImages() async {
+    final List<XFile> images = await _picker.pickMultiImage();
+    if (images.isNotEmpty) {
+      setState(() {
+        _selectedImages.addAll(images.map((image) => File(image.path)));
+      });
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2101),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF4A8AF4),
+              onPrimary: Colors.white,
+              onSurface: Colors.black87,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F9FC),
+      body: Column(
+        children: [
+          Expanded(
+            child: SafeArea(
+              bottom: false,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Create Post",
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildToggleButtons(),
+                    const SizedBox(height: 16),
+                    if (_isActivitySelected) ...[
+                      _buildPhotoUploadBox(),
+                      const SizedBox(height: 20),
+                    ],
+                    if (_isActivitySelected) ...[
+                      _buildLabelRow("Name:", _withRequiredIndicator(_buildTextField("Type here...."))),
+                      _buildLabelRow("Details:", _withRequiredIndicator(_buildTextField("Type here....", maxLines: 4))),
+                      _buildLabelRow("Due Date:", _withRequiredIndicator(_buildDueDateField())),
+                      _buildLabelRow("Register:", _withRequiredIndicator(_buildTextField("Type here...."))),
+                      _buildLabelRow("Contact:", _withRequiredIndicator(_buildTextField("Type here...."))),
+                      _buildLabelRow("Tags:", _withRequiredIndicator(_buildTagsRow())),
+                    ] else ...[
+                      _buildLabelRow("Name:", _withRequiredIndicator(_buildTextField("Type here...."))),
+                      _buildLabelRow("Role Needed:", _withRequiredIndicator(_buildTextField("Type here...."))),
+                      _buildLabelRow(
+                        "Teammates Needed:",
+                        _withRequiredIndicator(_buildTextField("Type here....", isNumber: true)),
+                      ),
+                      _buildLabelRow("Required Skill:", _withRequiredIndicator(_buildTextField("Type here...."))),
+                      _buildLabelRow("Type:", _withRequiredIndicator(_buildTypeRow())),
+                      _buildLabelRow("Contact:", _withRequiredIndicator(_buildTextField("Type here...."))),
+                    ],
+                    const SizedBox(height: 10),
+                    _buildSubmitButton(),
+                    const SizedBox(height: 16),
+                    _buildNoteText(),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const CustomBottomNav(selectedIndex: 1),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggleButtons() {
+    return Container(
+      height: 38,
+      decoration: BoxDecoration(
+        color: const Color(0xFFD3DEF5),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Stack(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _isActivitySelected = true),
+                  child: Container(
+                    color: Colors.transparent,
+                    child: Center(
+                      child: Text(
+                        "Activity",
+                        style: TextStyle(
+                          color: _isActivitySelected ? Colors.white : Colors.grey[600],
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _isActivitySelected = false),
+                  child: Container(
+                    color: Colors.transparent,
+                    child: Center(
+                      child: Text(
+                        "Find Teammates",
+                        style: TextStyle(
+                          color: !_isActivitySelected ? Colors.white : Colors.grey[600],
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            alignment: _isActivitySelected ? Alignment.centerLeft : Alignment.centerRight,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A8AF4),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Center(
+                  child: Text(
+                    _isActivitySelected ? "Activity" : "Find Teammates",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhotoUploadBox() {
+    return GestureDetector(
+      onTap: _pickImages,
+      child: Container(
+        height: 150,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF4F7FC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFD3DEF5), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: _selectedImages.isEmpty
+            ? _buildPlaceholderContent()
+            : _buildImageGrid(),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholderContent() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(
+                Icons.image,
+                size: 50,
+                color: Color(0xFFD3DEF5),
+              ),
+              Positioned(
+                top: -5,
+                right: -5,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF4F7FC),
+                    shape: BoxShape.circle,
+                  ),
+                  padding: const EdgeInsets.all(2),
+                  child: const Icon(
+                    Icons.add,
+                    size: 18,
+                    color: Color(0xFFD3DEF5),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Add Your Photo",
+            style: TextStyle(
+              color: Color(0xFF8FA5C1),
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageGrid() {
+    return GridView.builder(
+      padding: const EdgeInsets.all(8),
+      scrollDirection: Axis.horizontal,
+      itemCount: _selectedImages.length + 1,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 1,
+        mainAxisSpacing: 8,
+        childAspectRatio: 1,
+      ),
+      itemBuilder: (context, index) {
+        if (index == _selectedImages.length) {
+          return GestureDetector(
+            onTap: _pickImages,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFD3DEF5), style: BorderStyle.solid),
+              ),
+              child: const Icon(Icons.add_a_photo, color: Color(0xFF8FA5C1)),
+            ),
+          );
+        }
+        return Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.file(
+                _selectedImages[index],
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+              ),
+            ),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedImages.removeAt(index);
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLabelRow(String label, Widget child) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0), // increased padding for breathing room
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center, // center align label and field vertically
+        children: [
+          SizedBox(
+            width: 80, // slightly adjusted width
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Color(0xFF333333),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12), // gap between label and field
+          Expanded(
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField(String hint, {int maxLines = 1, bool isNumber = false}) {
+    return Container(
+      // width: 220, // Removed fixed width to allow expansion
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: TextField(
+        maxLines: maxLines,
+        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        inputFormatters: isNumber ? [FilteringTextInputFormatter.digitsOnly] : null,
+        style: const TextStyle(fontSize: 13),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTypeRow() {
+    return Wrap(
+      spacing: 8.0,
+      runSpacing: 8.0,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        ..._selectedTypes.map((type) => _buildChip(type, _selectedTypes)),
+        _buildAddButton(
+          title: "Add Type",
+          availableItems: _competitionTypes,
+          selectedItems: _selectedTypes,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTagsRow() {
+    return Wrap(
+      spacing: 8.0,
+      runSpacing: 8.0,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        ..._selectedTags.map((tag) => _buildChip(tag, _selectedTags)),
+        _buildAddButton(
+          title: "Add Tag",
+          availableItems: _availableTags,
+          selectedItems: _selectedTags,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddButton({
+    required String title,
+    required List<String> availableItems,
+    required List<String> selectedItems,
+  }) {
+    return PopupMenuButton<String>(
+      padding: EdgeInsets.zero,
+      offset: const Offset(0, 40),
+      tooltip: title,
+      onSelected: (String item) {},
+      itemBuilder: (BuildContext context) {
+        return availableItems.map((String item) {
+          return PopupMenuItem<String>(
+            value: item,
+            enabled: false,
+            child: StatefulBuilder(
+              builder: (context, setPopupState) {
+                bool isSelected = selectedItems.contains(item);
+                return InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        selectedItems.remove(item);
+                      } else {
+                        selectedItems.add(item);
+                      }
+                    });
+                    setPopupState(() {});
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                          size: 20,
+                          color: const Color(0xFF4A8AF4),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            item,
+                            style: const TextStyle(fontSize: 14, color: Colors.black87),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        }).toList();
+      },
+      child: Container(
+        width: 38,
+        height: 28,
+        decoration: BoxDecoration(
+          color: const Color(0xFFD3DEF5),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: const Icon(Icons.add, size: 16, color: Color(0xFF8FA5C1)),
+      ),
+    );
+  }
+
+  Widget _buildChip(String text, List<String> selectedItems) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedItems.remove(text);
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF4A8AF4),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.close, size: 14, color: Colors.white),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper to wrap fields with the '*' next to them based on length
+  Widget _withRequiredIndicator(Widget child) {
+    return Row( // Changed Wrap to Row for better control within the Expanded parent
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(child: child), // Field takes remaining space
+        const SizedBox(width: 8),
+        const Text(
+          '*',
+          style: TextStyle(
+            color: Color(0xFFE91E63),
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDueDateField() {
+    return GestureDetector(
+      onTap: () => _selectDate(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _selectedDate == null
+                  ? 'DD/MM/YYYY'
+                  : DateFormat('dd/MM/yyyy').format(_selectedDate!),
+              style: TextStyle(
+                color: _selectedDate == null ? Colors.grey[400] : Colors.black87,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.calendar_today, color: Colors.black87, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildSubmitButton() {
+    return Container(
+      width: 180,
+      height: 44,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE91E63), 
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Center(
+        child: Text(
+          "Create now",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoteText() {
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(fontSize: 12, color: Colors.black87),
+        children: [
+          const TextSpan(
+            text: "Note: ",
+            style: TextStyle(color: Color(0xFFE91E63), fontWeight: FontWeight.bold),
+          ),
+          TextSpan(
+            text: "Your post is pending review by an admin. You can track\nthe status in your Posting History.",
+            style: TextStyle(height: 1.4, color: Colors.grey[800]),
+          ),
+        ],
+      ),
+    );
+  }
+}
