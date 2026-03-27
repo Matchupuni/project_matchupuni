@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/side_drawer.dart';
 import '../widgets/custom_bottom_nav.dart';
+import '../services/saved_service.dart';
+import 'competition_detail_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,29 +16,11 @@ class _HomePageState extends State<HomePage> {
   List<String> _selectedCategories = ['All'];
   bool _isFilterExpanded = false;
 
-  // State for saved posts
-  List<Map<String, dynamic>> savedPosts = [];
-
-  void toggleSave() {
-    setState(() {
-      final isSaved = savedPosts.any((p) => p['title'] == 'Startup2025');
-      if (isSaved) {
-        savedPosts.removeWhere((p) => p['title'] == 'Startup2025');
-      } else {
-        savedPosts.add({
-          'title': 'Startup2025',
-          'date': 'Now - 02/12/2025',
-          'color': const Color(0xFFE91E63), // Pink blob color from Startup2025
-        });
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC), // Light grayish blue background
-      endDrawer: SideDrawer(savedPosts: savedPosts),
+      endDrawer: const SideDrawer(),
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -92,7 +76,19 @@ class _HomePageState extends State<HomePage> {
                               : const SizedBox(key: ValueKey('collapsed_filters')),
                         ),
                         const SizedBox(height: 25),
-                        _buildMainCard(),
+                        _buildCompetitionCard(
+                          title: "Startup2025",
+                          posterName: "ICT Club",
+                          date: "Now - 02/12/2025",
+                          tags: [
+                            "Business & Strategy",
+                            "Design & Creative",
+                            "Software & App Development"
+                          ],
+                          details: "Join the biggest startup competition of the year! Bring your innovative ideas to life and win prizes up to \$10,000. Open to all university students.",
+                          link: "bit.ly/startup2025-reg",
+                          contact: "startup2025@uni.edu",
+                        ),
                         const SizedBox(height: 20),
                       ],
                     ),
@@ -309,202 +305,206 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildMainCard() {
+  Widget _buildCompetitionCard({
+    required String title,
+    required String posterName,
+    required String date,
+    required List<String> tags,
+    required String details,
+    required String link,
+    required String contact,
+  }) {
+    final isSaved = SavedService.isSaved(title);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F0FE), // Light blue-grey background
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: Stack(
-        children: [
-          // Background blob shape approximation
-          Positioned(
-            top: -20,
-            left: 20,
-            right: 10,
-            child: Container(
-              height: 140,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE91E63),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(150),
-                  bottomRight: Radius.circular(100),
-                  topLeft: Radius.circular(100),
-                  topRight: Radius.circular(50),
-                ),
-              ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
-
-          // Favorite button placed cleanly on the top-right of the card
-          Positioned(
-            top: 20,
-            right: 20,
-            child: GestureDetector(
-              onTap: toggleSave,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
+          ],
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Image Preview at the top with Date Badge
+            Stack(
+              children: [
+                Image.asset(
+                  'assets/competition_preview.png',
+                  height: 140,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
-                ),
-                child: Icon(
-                  savedPosts.any((p) => p['title'] == 'Startup2025')
-                      ? Icons.bookmark
-                      : Icons.bookmark_border,
-                  color: const Color(0xFFE91E63),
-                  size: 24,
-                ),
-              ),
-            ),
-          ),
-
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 24),
-              // Laptop illustration area
-              SizedBox(
-                height: 100,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // A placeholder for the laptop since we don't have the image asset
-                    Icon(Icons.laptop_mac, size: 64, color: Colors.grey[100]),
-
-                    // Yellow badge - "Now - 02/12/2025"
-                    Positioned(
-                      top: 0,
-                      right: 15,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFC107),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Text(
-                          "Now -\n02/12/2025",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.calendar_today, size: 12, color: Colors.white),
+                        const SizedBox(width: 6),
+                        Text(
+                          date,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            fontSize: 11,
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                "Startup2025",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-
-              // Bottom wave/curve section of the card
-              Container(
-                padding: const EdgeInsets.only(
-                  left: 12,
-                  right: 12,
-                  top: 16,
-                  bottom: 16,
-                ),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.elliptical(200, 30),
-                    topRight: Radius.elliptical(200, 30),
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2C3246),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        SavedService.toggleSave(SavedItem(
+                          title: title,
+                          date: date,
+                          tags: tags,
+                          details: details,
+                          link: link,
+                          contact: contact,
+                          isTeam: false,
+                          iconColor: const Color(0xFF4A8AF4),
+                        ));
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isSaved ? Icons.bookmark : Icons.bookmark_border,
+                        color: const Color(0xFFE91E63),
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],  
+              ),
+            ),
+            // Poster Avatar and Name (Moved below title and styled to match TeamPage)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 10,
+                    backgroundColor: Colors.purple[100],
+                    child: const Icon(Icons.person, size: 14, color: Colors.purple),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    posterName,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 10),
+
+            // Tags
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: tags.map((tag) => _buildTag(tag)).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // See More Bottom Banner (Synchronized with TeamPage)
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CompetitionDetailPage(
+                      title: title,
+                      date: date,
+                      tags: tags,
+                      details: details,
+                      link: link,
+                      contact: contact,
+                    ),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF9CBEEB), // Light blue banner theme
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Startup2025",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          children: [
-                            _buildTag("Competition"),
-                            _buildTag("AI"),
-                            _buildTag("Free"),
-                          ],
-                        ),
-                      ],
+                    Text(
+                      "See more",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
-                    Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.arrow_forward,
-                            color: Colors.grey,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          "See more",
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
+                    SizedBox(width: 8),
+                    Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
                   ],
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildTag(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF4A8AF4), // Blue tag
-        borderRadius: BorderRadius.circular(10),
+        color: const Color(0xFF4A8AF4), 
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         text,

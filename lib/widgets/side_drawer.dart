@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
+import '../services/saved_service.dart';
+import '../pages/competition_detail_page.dart';
 
 class SideDrawer extends StatelessWidget {
-  final List<Map<String, dynamic>> savedPosts;
-
-  const SideDrawer({super.key, required this.savedPosts});
+  const SideDrawer({super.key}); // Removed savedPosts property, now using service
 
   @override
   Widget build(BuildContext context) {
-    // Increased width slightly to 75% to give more room for the cards
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.75,
       backgroundColor: const Color(0xFFFBE8A6), // Yellow background
@@ -23,36 +22,40 @@ class SideDrawer extends StatelessWidget {
                   topRight: Radius.circular(30),
                 ),
               ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 25),
-                  _buildSavedHeader(),
-                  const SizedBox(height: 15),
-                  Expanded(
-                    child: savedPosts.isEmpty
-                        ? const Center(
-                            child: Text(
-                              "No saved posts yet.",
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.symmetric(horizontal: 15),
-                            itemCount: savedPosts.length,
-                            separatorBuilder: (context, index) => const SizedBox(height: 15),
-                            itemBuilder: (context, index) {
-                              final post = savedPosts[index];
-                              return _buildSavedCard(
-                                title: post['title'] ?? '',
-                                date: post['date'] ?? '',
-                                iconColor: post['color'] ?? Colors.blue,
-                              );
-                            },
-                          ),
-                  ),
-                  _buildLogoutButton(context),
-                  const SizedBox(height: 35),
-                ],
+              child: ValueListenableBuilder<List<SavedItem>>(
+                valueListenable: SavedService.savedItems,
+                builder: (context, savedList, _) {
+                  return Column(
+                    children: [
+                      const SizedBox(height: 25),
+                      _buildSavedHeader(savedList.length),
+                      const SizedBox(height: 15),
+                      Expanded(
+                        child: savedList.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  "No saved posts yet.",
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              )
+                            : ListView.separated(
+                                padding: const EdgeInsets.symmetric(horizontal: 15),
+                                itemCount: savedList.length,
+                                separatorBuilder: (context, index) => const SizedBox(height: 15),
+                                itemBuilder: (context, index) {
+                                  final item = savedList[index];
+                                  return _buildSavedCard(
+                                    context,
+                                    item: item,
+                                  );
+                                },
+                              ),
+                      ),
+                      _buildLogoutButton(context),
+                      const SizedBox(height: 35),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -134,7 +137,7 @@ class SideDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildSavedHeader() {
+  Widget _buildSavedHeader(int count) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -171,7 +174,7 @@ class SideDrawer extends StatelessWidget {
               borderRadius: BorderRadius.circular(15),
             ),
             child: Text(
-              "${savedPosts.length} items",
+              "$count items",
               style: const TextStyle(
                 color: Color(0xFF2C5697), // Darker text color
                 fontWeight: FontWeight.bold,
@@ -184,7 +187,7 @@ class SideDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildSavedCard({required String title, required String date, required Color iconColor}) {
+  Widget _buildSavedCard(BuildContext context, {required SavedItem item}) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -205,7 +208,7 @@ class SideDrawer extends StatelessWidget {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: iconColor,
+              color: item.iconColor,
               borderRadius: BorderRadius.circular(15),
             ),
             child: const Icon(Icons.dashboard, color: Colors.white30, size: 24),
@@ -217,7 +220,7 @@ class SideDrawer extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  title,
+                  item.title,
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -229,7 +232,7 @@ class SideDrawer extends StatelessWidget {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        date,
+                        item.date,
                         style: const TextStyle(color: Colors.grey, fontSize: 11),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -244,27 +247,47 @@ class SideDrawer extends StatelessWidget {
           Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  shape: BoxShape.circle,
+              GestureDetector(
+                onTap: () => SavedService.toggleSave(item),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.bookmark, color: Color(0xFFE91E63), size: 16),
                 ),
-                child: const Icon(Icons.bookmark, color: Color(0xFFE91E63), size: 16),
               ),
               const SizedBox(height: 6),
-              Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      shape: BoxShape.circle,
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CompetitionDetailPage(
+                        title: item.title,
+                        date: item.date,
+                        tags: item.tags,
+                        details: item.details,
+                        link: item.link,
+                        contact: item.contact,
+                      ),
                     ),
-                    child: const Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
-                  ),
-                  const Text("See more", style: TextStyle(fontSize: 9, color: Colors.grey)),
-                ],
+                  );
+                },
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
+                    ),
+                    const Text("See more", style: TextStyle(fontSize: 9, color: Colors.grey)),
+                  ],
+                ),
               ),
             ],
           )
