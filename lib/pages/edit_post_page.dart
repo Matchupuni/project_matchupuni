@@ -6,17 +6,17 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../widgets/custom_bottom_nav.dart';
-import 'home_page.dart';
 import 'my_posts_page.dart';
 
-class PostPage extends StatefulWidget {
-  const PostPage({super.key});
+class EditPostPage extends StatefulWidget {
+  final Map<String, dynamic> cardData;
+  const EditPostPage({super.key, required this.cardData});
 
   @override
-  State<PostPage> createState() => _PostPageState();
+  State<EditPostPage> createState() => _EditPostPageState();
 }
 
-class _PostPageState extends State<PostPage> {
+class _EditPostPageState extends State<EditPostPage> {
   final List<String> _availableTags = [
     'All',
     'Competition',
@@ -66,6 +66,41 @@ class _PostPageState extends State<PostPage> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _nameController.text = widget.cardData['name'] ?? '';
+    _registerLinkController.text = widget.cardData['register_link'] ?? '';
+
+    if (widget.cardData['tags'] != null) {
+      _selectedTags.addAll(List<String>.from(widget.cardData['tags']));
+    }
+    if (widget.cardData['fields'] != null) {
+      _selectedTypes.addAll(List<String>.from(widget.cardData['fields']));
+    }
+
+    if (widget.cardData['due_date'] != null) {
+      _selectedDate = DateTime.tryParse(
+        widget.cardData['due_date'].toString(),
+      )?.toLocal();
+    }
+
+    _isActivitySelected =
+        (widget.cardData['post_type'] ?? 'activity') == 'activity';
+
+    if (!_isActivitySelected) {
+      _roleNeededController.text = widget.cardData['role_needed'] ?? '';
+      _teammatesNeededController.text =
+          widget.cardData['teammates_needed']?.toString() ?? '';
+      _requiredSkillController.text = widget.cardData['required_skill'] ?? '';
+      _contactController.text = widget.cardData['contact'] ?? '';
+      _detailsController.text = widget.cardData['details'] ?? '';
+    } else {
+      _detailsController.text = widget.cardData['details'] ?? '';
+      _contactController.text = widget.cardData['contact'] ?? '';
+    }
+  }
+
   Future<void> _pickImages() async {
     final List<XFile> images = await _picker.pickMultiImage();
     if (images.isNotEmpty) {
@@ -76,10 +111,15 @@ class _PostPageState extends State<PostPage> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    final DateTime initial = _selectedDate ?? DateTime.now();
+    final DateTime firstD = initial.isBefore(DateTime.now())
+        ? initial
+        : DateTime.now();
+
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime.now(),
+      initialDate: initial,
+      firstDate: firstD,
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
@@ -121,24 +161,8 @@ class _PostPageState extends State<PostPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const SizedBox(width: 40), // Spacer for centering
-                        const Text(
-                          "Create Post",
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF333333),
-                          ),
-                        ),
                         GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const MyPostsPage(),
-                              ),
-                            );
-                          },
+                          onTap: () => Navigator.pop(context),
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
@@ -152,12 +176,23 @@ class _PostPageState extends State<PostPage> {
                               ],
                             ),
                             child: const Icon(
-                              Icons.history,
-                              color: Color(0xFFE91E63),
+                              Icons.arrow_back,
+                              color: Color(0xFF333333),
                               size: 24,
                             ),
                           ),
                         ),
+                        const Text(
+                          "Edit Post",
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF333333),
+                          ),
+                        ),
+                        const SizedBox(
+                          width: 40,
+                        ), // Spacer to keep title centered
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -753,7 +788,7 @@ class _PostPageState extends State<PostPage> {
     }
 
     String details = _detailsController.text.trim();
-    String? uploadedImagePath;
+    String? uploadedImagePath = widget.cardData['image_path'];
 
     try {
       if (_selectedImages.isNotEmpty) {
@@ -802,35 +837,22 @@ class _PostPageState extends State<PostPage> {
         "contact": _isActivitySelected ? null : _contactController.text.trim(),
       };
 
-      final response = await http.post(
-        Uri.parse('http://localhost:3000/posts'),
+      final response = await http.put(
+        Uri.parse('http://localhost:3000/posts/${widget.cardData['id']}'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(payload),
       );
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Post Created Successfully!')),
+            const SnackBar(content: Text('Post Updated Successfully!')),
           );
-          // Navigate to Activity or clear form
-          setState(() {
-            _nameController.clear();
-            _detailsController.clear();
-            _registerLinkController.clear();
-            _contactController.clear();
-            _roleNeededController.clear();
-            _teammatesNeededController.clear();
-            _requiredSkillController.clear();
-            _selectedTags.clear();
-            _selectedTypes.clear();
-            _selectedDate = null;
-            _selectedImages.clear();
-          });
+          // Navigate to MyPostsPage
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
-            (Route<dynamic> route) => false,
+            MaterialPageRoute(builder: (context) => const MyPostsPage()),
+            (Route<dynamic> route) => route.settings.name == '/',
           );
         }
       } else {
@@ -863,7 +885,7 @@ class _PostPageState extends State<PostPage> {
         ),
         child: const Center(
           child: Text(
-            "Create now",
+            "Save Changes",
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,

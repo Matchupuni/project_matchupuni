@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import '../widgets/side_drawer.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../services/saved_service.dart';
@@ -18,6 +20,70 @@ class _TeamPageState extends State<TeamPage> {
   // Category filter state
   List<String> _selectedCategories = ['All'];
   bool _isFilterExpanded = false;
+
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  List<dynamic> _teamPosts = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTeamPosts();
+  }
+
+  Future<void> _fetchTeamPosts() async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+    try {
+      Map<String, dynamic> queryParams = {'post_type': 'team'};
+
+      if (!_selectedCategories.contains('All') &&
+          _selectedCategories.isNotEmpty) {
+        queryParams['tag'] = _selectedCategories;
+      }
+
+      final uri = Uri(
+        scheme: 'http',
+        host: 'localhost',
+        port: 3000,
+        path: '/posts',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
+
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        if (mounted) {
+          setState(() {
+            _teamPosts = json.decode(response.body);
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,66 +126,99 @@ class _TeamPageState extends State<TeamPage> {
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 400),
                           reverseDuration: const Duration(milliseconds: 300),
-                          transitionBuilder: (Widget child, Animation<double> animation) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SizeTransition(
-                                sizeFactor: animation,
-                                axisAlignment: -1.0,
-                                child: child,
-                              ),
-                            );
-                          },
+                          transitionBuilder:
+                              (Widget child, Animation<double> animation) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SizeTransition(
+                                    sizeFactor: animation,
+                                    axisAlignment: -1.0,
+                                    child: child,
+                                  ),
+                                );
+                              },
                           child: _isFilterExpanded
                               ? Padding(
                                   key: const ValueKey('expanded_filters'),
                                   padding: const EdgeInsets.only(top: 25.0),
                                   child: _buildCategories(),
                                 )
-                              : const SizedBox(key: ValueKey('collapsed_filters')),
+                              : const SizedBox(
+                                  key: ValueKey('collapsed_filters'),
+                                ),
                         ),
+                        if (_searchQuery.isNotEmpty) ...[
+                          const SizedBox(height: 25),
+                          Text(
+                            "Search Results for \"$_searchQuery\"",
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2C3246),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 25),
                         _buildSortOptions(),
                         const SizedBox(height: 20),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Column(
-                            children: [
-                              _buildTeamCard(
-                                title: 'UI/UX Design Team',
-                                posterName: 'Alice Johnson',
-                                postedDate: '20/03/2025',
-                                personCount: '2 People',
-                                roleCategory: 'Design & Creative',
-                                tags: ['Design & Creative', 'Software & App Development'],
-                                roleDescription: 'Looking for designers to help with a Fintech app project.',
-                                imageUrl: 'assets/competition_preview.png', // Updated with specific preview image
-                              ),
-                              const SizedBox(height: 20),
-                              _buildTeamCard(
-                                title: 'AI Research Group',
-                                posterName: 'Bob Smith',
-                                postedDate: '18/03/2025',
-                                personCount: '3 People',
-                                roleCategory: 'Data Science & AI',
-                                tags: ['Data Science & AI', 'Software & App Development'],
-                                roleDescription: 'Implementing a recommendation system using LLMs.',
-                                imageUrl: 'assets/matchup-logo.png', // Temporary placeholder
-                              ),
-                              const SizedBox(height: 20),
-                              _buildTeamCard(
-                                title: 'Cybersecurity Hub',
-                                posterName: 'Charlie Davis',
-                                postedDate: '15/03/2025',
-                                personCount: '1 Person',
-                                roleCategory: 'Cybersecurity',
-                                tags: ['Cybersecurity', 'Software & App Development'],
-                                roleDescription: 'Conducting a security audit for an open source project.',
-                                imageUrl: 'assets/matchup-logo.png', // Temporary placeholder
-                              ),
-                            ],
+                        if (_isLoading)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        else if (_teamPosts.isEmpty)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: Text('No team posts found.'),
+                            ),
+                          )
+                        else
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Column(
+                              children: _teamPosts.map((post) {
+                                final List<String> categories =
+                                    post['fields'] != null
+                                    ? List<String>.from(post['fields'])
+                                    : [];
+                                final List<String> allTags = [];
+                                if (post['tags'] != null) {
+                                  allTags.addAll(
+                                    List<String>.from(post['tags']),
+                                  );
+                                }
+                                allTags.addAll(categories);
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 20.0),
+                                  child: _buildTeamCard(
+                                    title: post['name'] ?? 'No Title',
+                                    posterName:
+                                        post['contact'] ?? 'Unknown User',
+                                    postedDate: post['due_date'] != null
+                                        ? DateTime.parse(
+                                            post['due_date'].toString(),
+                                          ).toLocal().toString().substring(
+                                            0,
+                                            16,
+                                          )
+                                        : "No Date",
+                                    personCount:
+                                        '${post['teammates_needed'] ?? "?"} People',
+                                    roleCategory:
+                                        post['role_needed'] ?? 'Any Role',
+                                    tags: allTags,
+                                    roleDescription:
+                                        post['details'] ?? 'No Description',
+                                    imageUrl: post['image_path'],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
                           ),
-                        ),
                         const SizedBox(height: 20),
                       ],
                     ),
@@ -199,7 +298,9 @@ class _TeamPageState extends State<TeamPage> {
           child: Icon(
             Icons.filter_alt,
             size: 26,
-            color: _isFilterExpanded ? const Color(0xFF4285F4) : const Color(0xFF1E293B),
+            color: _isFilterExpanded
+                ? const Color(0xFF4285F4)
+                : const Color(0xFF1E293B),
           ),
         ),
         const SizedBox(width: 12),
@@ -212,23 +313,56 @@ class _TeamPageState extends State<TeamPage> {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
-               children: [
-                 Expanded(
-                   child: TextField(
-                     style: const TextStyle(color: Colors.white),
-                     decoration: InputDecoration(
-                       hintText: 'Search skill, project, topic ...',
-                       hintStyle: TextStyle(
-                         color: Colors.white.withOpacity(0.9),
-                         fontSize: 15,
-                       ),
-                       border: InputBorder.none,
-                       contentPadding: const EdgeInsets.only(bottom: 5),
-                     ),
-                   ),
-                 ),
-                 const Icon(Icons.search, color: Colors.white, size: 26),
-               ],
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    style: const TextStyle(color: Colors.white),
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (value) {
+                      setState(() {
+                        _searchQuery = value.trim();
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search skill, project, topic ...',
+                      hintStyle: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 15,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.only(bottom: 5),
+                    ),
+                  ),
+                ),
+                if (_searchQuery.isNotEmpty)
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _searchController.clear();
+                        _searchQuery = '';
+                      });
+                    },
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _searchQuery = _searchController.text.trim();
+                    });
+                  },
+                  child: const Icon(
+                    Icons.search,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -265,6 +399,7 @@ class _TeamPageState extends State<TeamPage> {
                 setState(() {
                   _selectedCategories = ['All'];
                 });
+                _fetchTeamPosts();
               },
               child: const Text(
                 "Reset",
@@ -279,8 +414,8 @@ class _TeamPageState extends State<TeamPage> {
         ),
         const SizedBox(height: 12),
         Wrap(
-          spacing: 8.0, 
-          runSpacing: 10.0, 
+          spacing: 8.0,
+          runSpacing: 10.0,
           children: categories.map((cat) {
             final isSelected = _selectedCategories.contains(cat);
             return GestureDetector(
@@ -300,6 +435,7 @@ class _TeamPageState extends State<TeamPage> {
                     }
                   }
                 });
+                _fetchTeamPosts();
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -358,17 +494,24 @@ class _TeamPageState extends State<TeamPage> {
                 setState(() => _sortBy = 'Newest');
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
-                    color: _sortBy == 'Newest' ? const Color(0xFFE91E63) : const Color(0xFFD3DEF5),
-                    borderRadius: BorderRadius.circular(20),
+                  color: _sortBy == 'Newest'
+                      ? const Color(0xFFE91E63)
+                      : const Color(0xFFD3DEF5),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
                     Text(
                       "Newest",
                       style: TextStyle(
-                        color: _sortBy == 'Newest' ? Colors.white : Colors.grey[700],
+                        color: _sortBy == 'Newest'
+                            ? Colors.white
+                            : Colors.grey[700],
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),
@@ -376,7 +519,7 @@ class _TeamPageState extends State<TeamPage> {
                     if (_sortBy == 'Newest') ...[
                       const SizedBox(width: 4),
                       const Icon(Icons.check, color: Colors.white, size: 14),
-                    ]
+                    ],
                   ],
                 ),
               ),
@@ -387,17 +530,24 @@ class _TeamPageState extends State<TeamPage> {
                 setState(() => _sortBy = 'Oldest');
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
-                  color: _sortBy == 'Oldest' ? const Color(0xFFE91E63) : const Color(0xFFD3DEF5),
+                  color: _sortBy == 'Oldest'
+                      ? const Color(0xFFE91E63)
+                      : const Color(0xFFD3DEF5),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
-                     Text(
+                    Text(
                       "Oldest",
                       style: TextStyle(
-                        color: _sortBy == 'Oldest' ? Colors.white : Colors.grey[700],
+                        color: _sortBy == 'Oldest'
+                            ? Colors.white
+                            : Colors.grey[700],
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),
@@ -405,7 +555,7 @@ class _TeamPageState extends State<TeamPage> {
                     if (_sortBy == 'Oldest') ...[
                       const SizedBox(width: 4),
                       const Icon(Icons.check, color: Colors.white, size: 14),
-                    ]
+                    ],
                   ],
                 ),
               ),
@@ -424,7 +574,7 @@ class _TeamPageState extends State<TeamPage> {
     required String roleCategory,
     required List<String> tags,
     required String roleDescription,
-    required String imageUrl,
+    String? imageUrl,
   }) {
     final isSaved = SavedService.isSaved(title);
 
@@ -447,22 +597,45 @@ class _TeamPageState extends State<TeamPage> {
           // Image Preview
           Stack(
             children: [
-              Container(
-                height: 120,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F0FE),
-                  image: DecorationImage(
-                    image: AssetImage(imageUrl),
-                    fit: BoxFit.cover,
+              if (imageUrl != null && imageUrl.isNotEmpty)
+                Image.network(
+                  'http://localhost:3000$imageUrl',
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 120,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE8F0FE),
+                        image: DecorationImage(
+                          image: AssetImage('assets/competition_preview.png'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    );
+                  },
+                )
+              else
+                Container(
+                  height: 120,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE8F0FE),
+                    image: DecorationImage(
+                      image: AssetImage('assets/competition_preview.png'),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
-              ),
               // Date Badge (Dark Semi-transparent from HomePage style)
               Positioned(
                 top: 12,
                 right: 12,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(12),
@@ -470,7 +643,11 @@ class _TeamPageState extends State<TeamPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.calendar_today, size: 12, color: Colors.white),
+                      const Icon(
+                        Icons.calendar_today,
+                        size: 12,
+                        color: Colors.white,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         postedDate,
@@ -506,16 +683,19 @@ class _TeamPageState extends State<TeamPage> {
                 GestureDetector(
                   onTap: () {
                     setState(() {
-                      SavedService.toggleSave(SavedItem(
-                        title: title,
-                        date: postedDate,
-                        tags: tags,
-                        details: roleDescription,
-                        link: "N/A",
-                        contact: "Member contact info",
-                        isTeam: true,
-                        iconColor: const Color(0xFFE91E63),
-                      ));
+                      SavedService.toggleSave(
+                        SavedItem(
+                          title: title,
+                          date: postedDate,
+                          tags: tags,
+                          details: roleDescription,
+                          link: "N/A",
+                          contact: "Member contact info",
+                          isTeam: true,
+                          iconColor: const Color(0xFFE91E63),
+                          imageUrl: imageUrl,
+                        ),
+                      );
                     });
                   },
                   child: Container(
@@ -526,7 +706,9 @@ class _TeamPageState extends State<TeamPage> {
                     ),
                     child: Icon(
                       isSaved ? Icons.bookmark : Icons.bookmark_border,
-                      color: isSaved ? const Color(0xFFE91E63) : const Color(0xFFE91E63),
+                      color: isSaved
+                          ? const Color(0xFFE91E63)
+                          : const Color(0xFFE91E63),
                       size: 20,
                     ),
                   ),
@@ -534,7 +716,7 @@ class _TeamPageState extends State<TeamPage> {
               ],
             ),
           ),
-          
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -542,7 +724,11 @@ class _TeamPageState extends State<TeamPage> {
                 CircleAvatar(
                   radius: 10,
                   backgroundColor: Colors.purple[100],
-                  child: const Icon(Icons.person, size: 14, color: Colors.purple),
+                  child: const Icon(
+                    Icons.person,
+                    size: 14,
+                    color: Colors.purple,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -557,7 +743,7 @@ class _TeamPageState extends State<TeamPage> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // Tags
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -596,6 +782,7 @@ class _TeamPageState extends State<TeamPage> {
                     details: roleDescription,
                     link: "N/A",
                     contact: "Member contact info",
+                    imageUrl: imageUrl,
                   ),
                 ),
               );

@@ -9,6 +9,7 @@ class SavedItem {
   final String contact;
   final bool isTeam; // To distinguish between Competition and Team
   final Color iconColor;
+  final String? imageUrl;
 
   SavedItem({
     required this.title,
@@ -19,11 +20,13 @@ class SavedItem {
     required this.contact,
     this.isTeam = false,
     this.iconColor = Colors.blue,
+    this.imageUrl,
   });
 }
 
 class SavedService {
-  static final ValueNotifier<List<SavedItem>> savedItems = ValueNotifier<List<SavedItem>>([]);
+  static final ValueNotifier<List<SavedItem>> savedItems =
+      ValueNotifier<List<SavedItem>>([]);
 
   static void toggleSave(SavedItem item) {
     final index = savedItems.value.indexWhere((i) => i.title == item.title);

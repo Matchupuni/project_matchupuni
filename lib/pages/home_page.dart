@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import '../widgets/side_drawer.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../services/saved_service.dart';
@@ -15,6 +17,73 @@ class _HomePageState extends State<HomePage> {
   // Current selected category
   List<String> _selectedCategories = ['All'];
   bool _isFilterExpanded = false;
+
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  List<dynamic> _cards = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCards();
+  }
+
+  Future<void> _fetchCards() async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+    try {
+      Map<String, dynamic> queryParams = {'post_type': 'activity'};
+
+      if (!_selectedCategories.contains('All') &&
+          _selectedCategories.isNotEmpty) {
+        // http package converts a List into multiple query parameters
+        queryParams['tag'] = _selectedCategories;
+      }
+
+      final uri = Uri(
+        scheme: 'http',
+        host: 'localhost',
+        port: 3000,
+        path: '/posts',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
+
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        if (mounted) {
+          setState(() {
+            _cards = json.decode(response.body);
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        debugPrint('Failed to load cards: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      debugPrint('Error fetching cards: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,41 +123,87 @@ class _HomePageState extends State<HomePage> {
                         _buildHeader(),
                         const SizedBox(height: 20),
                         _buildSearchBar(),
+                        /* Restored Filter UI per user request */
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 400),
                           reverseDuration: const Duration(milliseconds: 300),
-                          transitionBuilder: (Widget child, Animation<double> animation) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SizeTransition(
-                                sizeFactor: animation,
-                                axisAlignment: -1.0,
-                                child: child,
-                              ),
-                            );
-                          },
+                          transitionBuilder:
+                              (Widget child, Animation<double> animation) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SizeTransition(
+                                    sizeFactor: animation,
+                                    axisAlignment: -1.0,
+                                    child: child,
+                                  ),
+                                );
+                              },
                           child: _isFilterExpanded
                               ? Padding(
                                   key: const ValueKey('expanded_filters'),
                                   padding: const EdgeInsets.only(top: 25.0),
                                   child: _buildCategories(),
                                 )
-                              : const SizedBox(key: ValueKey('collapsed_filters')),
+                              : const SizedBox(
+                                  key: ValueKey('collapsed_filters'),
+                                ),
                         ),
+                        if (_searchQuery.isNotEmpty) ...[
+                          const SizedBox(height: 25),
+                          Text(
+                            "Search Results for \"$_searchQuery\"",
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2C3246),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 25),
-                        _buildCompetitionCard(
-                          title: "Startup2025",
-                          posterName: "ICT Club",
-                          date: "Now - 02/12/2025",
-                          tags: [
-                            "Business & Strategy",
-                            "Design & Creative",
-                            "Software & App Development"
-                          ],
-                          details: "Join the biggest startup competition of the year! Bring your innovative ideas to life and win prizes up to \$10,000. Open to all university students.",
-                          link: "bit.ly/startup2025-reg",
-                          contact: "startup2025@uni.edu",
-                        ),
+                        if (_isLoading)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        else if (_cards.isEmpty)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: Text('No competitions found.'),
+                            ),
+                          )
+                        else
+                          ..._cards.map((card) {
+                            final List<String> categories = card['tags'] != null
+                                ? List<String>.from(card['tags'])
+                                : [];
+                            final List<String> skillFields =
+                                card['fields'] != null
+                                ? List<String>.from(card['fields'])
+                                : [];
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 20.0),
+                              child: _buildCompetitionCard(
+                                title: card['name'] ?? 'No Title',
+                                posterName: "ICT Club",
+                                date: card['due_date'] != null
+                                    ? DateTime.parse(
+                                        card['due_date'].toString(),
+                                      ).toLocal().toString().substring(0, 16)
+                                    : "No Date",
+                                categories: categories,
+                                skillFields: skillFields,
+                                details:
+                                    card['details'] ?? 'No details available.',
+                                link: card['register_link'] ?? '',
+                                contact: "No contact info",
+                                imageUrl: card['image_path'],
+                              ),
+                            );
+                          }),
                         const SizedBox(height: 20),
                       ],
                     ),
@@ -179,6 +294,13 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Expanded(
                   child: TextField(
+                    controller: _searchController,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (value) {
+                      setState(() {
+                        _searchQuery = value.trim();
+                      });
+                    },
                     decoration: InputDecoration(
                       hintText: 'Search For Find ...',
                       hintStyle: TextStyle(
@@ -190,7 +312,29 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                const Icon(Icons.search, color: Colors.black87),
+                if (_searchQuery.isNotEmpty)
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _searchController.clear();
+                        _searchQuery = '';
+                      });
+                    },
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.black54,
+                      size: 20,
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _searchQuery = _searchController.text.trim();
+                    });
+                  },
+                  child: const Icon(Icons.search, color: Colors.black87),
+                ),
               ],
             ),
           ),
@@ -228,6 +372,7 @@ class _HomePageState extends State<HomePage> {
                 setState(() {
                   _selectedCategories = ['All'];
                 });
+                _fetchCards();
               },
               child: const Text(
                 "Reset",
@@ -254,19 +399,20 @@ class _HomePageState extends State<HomePage> {
                   } else {
                     // Remove 'All' if it was there
                     _selectedCategories.remove('All');
-                    
+
                     if (isSelected) {
                       _selectedCategories.remove(cat);
                     } else {
                       _selectedCategories.add(cat);
                     }
-                    
+
                     // If everything removed, back to 'All'
                     if (_selectedCategories.isEmpty) {
                       _selectedCategories = ['All'];
                     }
                   }
                 });
+                _fetchCards();
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -293,7 +439,8 @@ class _HomePageState extends State<HomePage> {
                   cat,
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.grey[700],
-                    fontWeight: FontWeight.w600, // Keep weight fixed to avoid jump
+                    fontWeight:
+                        FontWeight.w600, // Keep weight fixed to avoid jump
                     fontSize: 13,
                   ),
                 ),
@@ -309,10 +456,12 @@ class _HomePageState extends State<HomePage> {
     required String title,
     required String posterName,
     required String date,
-    required List<String> tags,
+    required List<String> categories,
+    required List<String> skillFields,
     required String details,
     required String link,
     required String contact,
+    String? imageUrl,
   }) {
     final isSaved = SavedService.isSaved(title);
 
@@ -337,17 +486,35 @@ class _HomePageState extends State<HomePage> {
             // Image Preview at the top with Date Badge
             Stack(
               children: [
-                Image.asset(
-                  'assets/competition_preview.png',
-                  height: 140,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
+                imageUrl != null && imageUrl.isNotEmpty
+                    ? Image.network(
+                        'http://localhost:3000$imageUrl',
+                        height: 140,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Image.asset(
+                            'assets/competition_preview.png',
+                            height: 140,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          );
+                        },
+                      )
+                    : Image.asset(
+                        'assets/competition_preview.png',
+                        height: 140,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
                 Positioned(
                   top: 12,
                   right: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.6),
                       borderRadius: BorderRadius.circular(12),
@@ -355,7 +522,11 @@ class _HomePageState extends State<HomePage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.calendar_today, size: 12, color: Colors.white),
+                        const Icon(
+                          Icons.calendar_today,
+                          size: 12,
+                          color: Colors.white,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           date,
@@ -390,16 +561,19 @@ class _HomePageState extends State<HomePage> {
                   GestureDetector(
                     onTap: () {
                       setState(() {
-                        SavedService.toggleSave(SavedItem(
-                          title: title,
-                          date: date,
-                          tags: tags,
-                          details: details,
-                          link: link,
-                          contact: contact,
-                          isTeam: false,
-                          iconColor: const Color(0xFF4A8AF4),
-                        ));
+                        SavedService.toggleSave(
+                          SavedItem(
+                            title: title,
+                            date: date,
+                            tags: [...categories, ...skillFields],
+                            details: details,
+                            link: link,
+                            contact: contact,
+                            isTeam: false,
+                            iconColor: const Color(0xFF4A8AF4),
+                            imageUrl: imageUrl,
+                          ),
+                        );
                       });
                     },
                     child: Container(
@@ -415,7 +589,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ),
-                ],  
+                ],
               ),
             ),
             // Poster Avatar and Name (Moved below title and styled to match TeamPage)
@@ -426,7 +600,11 @@ class _HomePageState extends State<HomePage> {
                   CircleAvatar(
                     radius: 10,
                     backgroundColor: Colors.purple[100],
-                    child: const Icon(Icons.person, size: 14, color: Colors.purple),
+                    child: const Icon(
+                      Icons.person,
+                      size: 14,
+                      color: Colors.purple,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -440,16 +618,23 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 10),
 
-            // Tags
+            // Categories and Skill Fields
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Wrap(
                 spacing: 6,
                 runSpacing: 6,
-                children: tags.map((tag) => _buildTag(tag)).toList(),
+                children: [
+                  ...categories.map(
+                    (tag) => _buildTag(tag, const Color(0xFF4A8AF4)),
+                  ), // Blue for Categories
+                  ...skillFields.map(
+                    (field) => _buildTag(field, const Color(0xFF4CAF50)),
+                  ), // Green for Skill Fields
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -463,10 +648,11 @@ class _HomePageState extends State<HomePage> {
                     builder: (context) => CompetitionDetailPage(
                       title: title,
                       date: date,
-                      tags: tags,
+                      tags: [...categories, ...skillFields],
                       details: details,
                       link: link,
                       contact: contact,
+                      imageUrl: imageUrl,
                     ),
                   ),
                 );
@@ -488,7 +674,11 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     SizedBox(width: 8),
-                    Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white,
+                      size: 14,
+                    ),
                   ],
                 ),
               ),
@@ -499,11 +689,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildTag(String text) {
+  Widget _buildTag(String text, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF4A8AF4), 
+        color: color,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -516,5 +706,4 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
 }

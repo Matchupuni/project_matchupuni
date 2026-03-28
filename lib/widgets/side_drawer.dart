@@ -3,7 +3,9 @@ import '../services/saved_service.dart';
 import '../pages/competition_detail_page.dart';
 
 class SideDrawer extends StatelessWidget {
-  const SideDrawer({super.key}); // Removed savedPosts property, now using service
+  const SideDrawer({
+    super.key,
+  }); // Removed savedPosts property, now using service
 
   @override
   Widget build(BuildContext context) {
@@ -39,15 +41,15 @@ class SideDrawer extends StatelessWidget {
                                 ),
                               )
                             : ListView.separated(
-                                padding: const EdgeInsets.symmetric(horizontal: 15),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 15,
+                                ),
                                 itemCount: savedList.length,
-                                separatorBuilder: (context, index) => const SizedBox(height: 15),
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: 15),
                                 itemBuilder: (context, index) {
                                   final item = savedList[index];
-                                  return _buildSavedCard(
-                                    context,
-                                    item: item,
-                                  );
+                                  return _buildSavedCard(context, item: item);
                                 },
                               ),
                       ),
@@ -84,10 +86,14 @@ class SideDrawer extends StatelessWidget {
                       BoxShadow(
                         color: Colors.black.withOpacity(0.05),
                         blurRadius: 10,
-                      )
+                      ),
                     ],
                   ),
-                  child: const Icon(Icons.close, size: 20, color: Colors.black87),
+                  child: const Icon(
+                    Icons.close,
+                    size: 20,
+                    color: Colors.black87,
+                  ),
                 ),
               ),
             ),
@@ -101,7 +107,10 @@ class SideDrawer extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 3),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15)
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 15,
+                  ),
                 ],
               ),
               child: const Icon(Icons.person, size: 50, color: Colors.grey),
@@ -152,7 +161,11 @@ class SideDrawer extends StatelessWidget {
                     color: Color(0xFFD3DEF5), // Light blue base
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.bookmark, color: Color(0xFFE91E63), size: 16),
+                  child: const Icon(
+                    Icons.bookmark,
+                    color: Color(0xFFE91E63),
+                    size: 16,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 const Expanded(
@@ -221,19 +234,29 @@ class SideDrawer extends StatelessWidget {
               children: [
                 Text(
                   item.title,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 5),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today, size: 12, color: Colors.grey),
+                    const Icon(
+                      Icons.calendar_today,
+                      size: 12,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         item.date,
-                        style: const TextStyle(color: Colors.grey, fontSize: 11),
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 11,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -255,7 +278,11 @@ class SideDrawer extends StatelessWidget {
                     color: Colors.grey[100],
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.bookmark, color: Color(0xFFE91E63), size: 16),
+                  child: const Icon(
+                    Icons.bookmark,
+                    color: Color(0xFFE91E63),
+                    size: 16,
+                  ),
                 ),
               ),
               const SizedBox(height: 6),
@@ -271,6 +298,7 @@ class SideDrawer extends StatelessWidget {
                         details: item.details,
                         link: item.link,
                         contact: item.contact,
+                        imageUrl: item.imageUrl,
                       ),
                     ),
                   );
@@ -283,14 +311,21 @@ class SideDrawer extends StatelessWidget {
                         color: Colors.grey[100],
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
+                      child: const Icon(
+                        Icons.arrow_forward,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
                     ),
-                    const Text("See more", style: TextStyle(fontSize: 9, color: Colors.grey)),
+                    const Text(
+                      "See more",
+                      style: TextStyle(fontSize: 9, color: Colors.grey),
+                    ),
                   ],
                 ),
               ),
             ],
-          )
+          ),
         ],
       ),
     );
