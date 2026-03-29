@@ -281,13 +281,13 @@ class _MyPostsPageState extends State<MyPostsPage> {
           date: card['due_date'] != null
               ? DateTime.parse(
                   card['due_date'].toString(),
-                ).toLocal().toString().substring(0, 16)
+                ).toLocal().toString().substring(0, 10)
               : "No Date",
           categories: categories,
           skillFields: skillFields,
           details: card['details'] ?? 'No details available.',
           link: card['register_link'] ?? '',
-          contact: "No contact info",
+          contact: card['contact'] ?? 'No contact info',
           fullCardData: card,
         ),
       );
@@ -540,14 +540,17 @@ class _MyPostsPageState extends State<MyPostsPage> {
                   // Bottom Banner (Edit or Selection overlay)
                   if (!_isSelectionMode)
                     GestureDetector(
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
                                 EditPostPage(cardData: fullCardData),
                           ),
                         );
+                        if (result == true) {
+                          _fetchCards();
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),

@@ -163,10 +163,8 @@ class _PostPageState extends State<PostPage> {
                     const SizedBox(height: 16),
                     _buildToggleButtons(),
                     const SizedBox(height: 16),
-                    if (_isActivitySelected) ...[
-                      _buildPhotoUploadBox(),
-                      const SizedBox(height: 20),
-                    ],
+                    _buildPhotoUploadBox(),
+                    const SizedBox(height: 20),
                     if (_isActivitySelected) ...[
                       _buildLabelRow(
                         "Name:",
@@ -224,6 +222,20 @@ class _PostPageState extends State<PostPage> {
                         ),
                       ),
                       _buildLabelRow(
+                        "Details:",
+                        _withRequiredIndicator(
+                          _buildTextField(
+                            "Type here....",
+                            controller: _detailsController,
+                            maxLines: 4,
+                          ),
+                        ),
+                      ),
+                      _buildLabelRow(
+                        "Due Date:",
+                        _withRequiredIndicator(_buildDueDateField()),
+                      ),
+                      _buildLabelRow(
                         "Role Needed:",
                         _withRequiredIndicator(
                           _buildTextField(
@@ -255,6 +267,15 @@ class _PostPageState extends State<PostPage> {
                         "Type:",
                         _withRequiredIndicator(_buildTypeRow()),
                       ),
+                        _buildLabelRow(
+                          "Register:",
+                          _withRequiredIndicator(
+                            _buildTextField(
+                              "Type here....",
+                              controller: _registerLinkController,
+                            ),
+                          ),
+                        ),
                       _buildLabelRow(
                         "Contact:",
                         _withRequiredIndicator(
@@ -799,7 +820,7 @@ class _PostPageState extends State<PostPage> {
         "required_skill": _isActivitySelected
             ? null
             : _requiredSkillController.text.trim(),
-        "contact": _isActivitySelected ? null : _contactController.text.trim(),
+        "contact": _contactController.text.trim(),
       };
 
       final response = await http.post(

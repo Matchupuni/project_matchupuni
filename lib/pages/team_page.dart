@@ -5,6 +5,7 @@ import '../widgets/side_drawer.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../services/saved_service.dart';
 import 'competition_detail_page.dart';
+import 'report_page.dart';
 
 class TeamPage extends StatefulWidget {
   const TeamPage({super.key});
@@ -44,7 +45,7 @@ class _TeamPageState extends State<TeamPage> {
 
       if (!_selectedCategories.contains('All') &&
           _selectedCategories.isNotEmpty) {
-        queryParams['tag'] = _selectedCategories;
+        queryParams['field'] = _selectedCategories;
       }
 
       final uri = Uri(
@@ -195,15 +196,16 @@ class _TeamPageState extends State<TeamPage> {
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 20.0),
                                   child: _buildTeamCard(
+                                    postId: post['id']?.toString() ?? '',
                                     title: post['name'] ?? 'No Title',
                                     posterName:
-                                        post['contact'] ?? 'Unknown User',
+                                        post['author_name'] ?? 'Unknown User',
                                     postedDate: post['due_date'] != null
                                         ? DateTime.parse(
                                             post['due_date'].toString(),
                                           ).toLocal().toString().substring(
                                             0,
-                                            16,
+                                            10,
                                           )
                                         : "No Date",
                                     personCount:
@@ -213,7 +215,11 @@ class _TeamPageState extends State<TeamPage> {
                                     tags: allTags,
                                     roleDescription:
                                         post['details'] ?? 'No Description',
+                                    contact:
+                                        post['contact'] ?? 'No contact info',
                                     imageUrl: post['image_path'],
+                                    link: post['register_link'] ?? 'N/A',
+                                    requiredSkill: post['required_skill'],
                                   ),
                                 );
                               }).toList(),
@@ -567,6 +573,7 @@ class _TeamPageState extends State<TeamPage> {
   }
 
   Widget _buildTeamCard({
+    required String postId,
     required String title,
     required String posterName,
     required String postedDate,
@@ -574,7 +581,10 @@ class _TeamPageState extends State<TeamPage> {
     required String roleCategory,
     required List<String> tags,
     required String roleDescription,
+    required String contact,
     String? imageUrl,
+    required String link,
+    String? requiredSkill,
   }) {
     final isSaved = SavedService.isSaved(title);
 
@@ -689,8 +699,8 @@ class _TeamPageState extends State<TeamPage> {
                           date: postedDate,
                           tags: tags,
                           details: roleDescription,
-                          link: "N/A",
-                          contact: "Member contact info",
+                          link: link,
+                          contact: contact,
                           isTeam: true,
                           iconColor: const Color(0xFFE91E63),
                           imageUrl: imageUrl,
@@ -713,6 +723,33 @@ class _TeamPageState extends State<TeamPage> {
                     ),
                   ),
                 ),
+                if (postId.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ReportPage(postId: postId, postTitle: title),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color:
+                            Colors.red[50], // Soft red background for warning
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.report_problem_outlined,
+                        color: Colors.red[400], // Distinct red color
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -755,16 +792,46 @@ class _TeamPageState extends State<TeamPage> {
           ),
           const SizedBox(height: 12),
 
-          // Role Description (Moved to bottom)
+          // Role and Teammates with Icons
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              "Role Needed : $roleDescription",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
-                fontSize: 13,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.work, size: 16, color: Color(0xFFE91E63)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "Role Needed: $roleCategory",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[700],
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.group, size: 16, color: Color(0xFFE91E63)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "Teammates Needed: $personCount",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[700],
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
@@ -780,9 +847,13 @@ class _TeamPageState extends State<TeamPage> {
                     date: postedDate,
                     tags: tags,
                     details: roleDescription,
-                    link: "N/A",
-                    contact: "Member contact info",
+                    link: link,
+                    contact: contact,
                     imageUrl: imageUrl,
+                    postType: 'team',
+                    roleNeeded: roleCategory,
+                    teammatesNeeded: personCount,
+                    requiredSkill: requiredSkill,
                   ),
                 ),
               );

@@ -8,6 +8,10 @@ class CompetitionDetailPage extends StatelessWidget {
   final String link;
   final String contact;
   final String? imageUrl;
+  final String? postType;
+  final String? roleNeeded;
+  final String? teammatesNeeded;
+  final String? requiredSkill;
 
   const CompetitionDetailPage({
     super.key,
@@ -18,6 +22,10 @@ class CompetitionDetailPage extends StatelessWidget {
     required this.link,
     required this.contact,
     this.imageUrl,
+    this.postType,
+    this.roleNeeded,
+    this.teammatesNeeded,
+    this.requiredSkill,
   });
 
   @override
@@ -181,37 +189,111 @@ class CompetitionDetailPage extends StatelessWidget {
                                 color: Color(0xFFE91E63),
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                "Due Date: $date",
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2C3246),
+                              Expanded(
+                                child: Text(
+                                  "Due Date: $date",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2C3246),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
+
+                          if (postType == 'team') ...[
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.group,
+                                  size: 18,
+                                  color: Color(0xFFE91E63),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    "Teammates Needed: ${teammatesNeeded ?? 'Any'}",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2C3246),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.work,
+                                  size: 18,
+                                  color: Color(0xFFE91E63),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    "Role Needed: ${roleNeeded ?? 'Any'}",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2C3246),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (requiredSkill != null &&
+                                requiredSkill!.isNotEmpty) ...[
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.psychology,
+                                    size: 18,
+                                    color: Color(0xFFE91E63),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      "Required Skill: $requiredSkill",
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF2C3246),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
                           const SizedBox(height: 24),
 
                           // Description
-                          const Text(
-                            "About Activity",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2C3246),
+                          if (details.isNotEmpty &&
+                              details != 'No Description') ...[
+                            const Text(
+                              "About Activity",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2C3246),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            details,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: Color(0xFF64748B),
-                              height: 1.6,
+                            const SizedBox(height: 12),
+                            Text(
+                              details,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                color: Color(0xFF64748B),
+                                height: 1.6,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 24),
+                            const SizedBox(height: 24),
+                          ],
 
                           // Contact Info
                           const Text(

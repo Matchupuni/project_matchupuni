@@ -70,7 +70,9 @@ class _EditPostPageState extends State<EditPostPage> {
   void initState() {
     super.initState();
     _nameController.text = widget.cardData['name'] ?? '';
+    _detailsController.text = widget.cardData['details'] ?? '';
     _registerLinkController.text = widget.cardData['register_link'] ?? '';
+    _contactController.text = widget.cardData['contact'] ?? '';
 
     if (widget.cardData['tags'] != null) {
       _selectedTags.addAll(List<String>.from(widget.cardData['tags']));
@@ -198,10 +200,8 @@ class _EditPostPageState extends State<EditPostPage> {
                     const SizedBox(height: 16),
                     _buildToggleButtons(),
                     const SizedBox(height: 16),
-                    if (_isActivitySelected) ...[
-                      _buildPhotoUploadBox(),
-                      const SizedBox(height: 20),
-                    ],
+                    _buildPhotoUploadBox(),
+                    const SizedBox(height: 20),
                     if (_isActivitySelected) ...[
                       _buildLabelRow(
                         "Name:",
@@ -259,6 +259,20 @@ class _EditPostPageState extends State<EditPostPage> {
                         ),
                       ),
                       _buildLabelRow(
+                        "Details:",
+                        _withRequiredIndicator(
+                          _buildTextField(
+                            "Type here....",
+                            controller: _detailsController,
+                            maxLines: 4,
+                          ),
+                        ),
+                      ),
+                      _buildLabelRow(
+                        "Due Date:",
+                        _withRequiredIndicator(_buildDueDateField()),
+                      ),
+                      _buildLabelRow(
                         "Role Needed:",
                         _withRequiredIndicator(
                           _buildTextField(
@@ -297,6 +311,13 @@ class _EditPostPageState extends State<EditPostPage> {
                             "Type here....",
                             controller: _contactController,
                           ),
+                        ),
+                      ),
+                      _buildLabelRow(
+                        "Register:",
+                        _buildTextField(
+                          "Link form...",
+                          controller: _registerLinkController,
                         ),
                       ),
                     ],
@@ -834,7 +855,7 @@ class _EditPostPageState extends State<EditPostPage> {
         "required_skill": _isActivitySelected
             ? null
             : _requiredSkillController.text.trim(),
-        "contact": _isActivitySelected ? null : _contactController.text.trim(),
+        "contact": _contactController.text.trim(),
       };
 
       final response = await http.put(
@@ -848,12 +869,8 @@ class _EditPostPageState extends State<EditPostPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Post Updated Successfully!')),
           );
-          // Navigate to MyPostsPage
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const MyPostsPage()),
-            (Route<dynamic> route) => route.settings.name == '/',
-          );
+          // Go back to the 'My Posts' page and signal a successful edit
+          Navigator.pop(context, true);
         }
       } else {
         if (mounted) {

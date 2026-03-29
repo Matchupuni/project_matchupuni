@@ -24,8 +24,11 @@ class CustomBottomNav extends StatelessWidget {
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => page,
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 150),
+        reverseTransitionDuration: const Duration(milliseconds: 150),
       ),
     );
   }
@@ -33,8 +36,9 @@ class CustomBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFF7F9FC), // Match scaffold background
+      color: const Color(0xFFF7F9FC),
       child: SafeArea(
+        top: false,
         child: Container(
           margin: const EdgeInsets.only(
             left: 20,
@@ -44,7 +48,7 @@ class CustomBottomNav extends StatelessWidget {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFFE8F0FE), // Light blue-grey background
+            color: const Color(0xFFE8F0FE),
             borderRadius: BorderRadius.circular(30),
           ),
           child: Row(
@@ -67,13 +71,28 @@ class CustomBottomNav extends StatelessWidget {
     String label,
   ) {
     final isSelected = selectedIndex == index;
+
     return GestureDetector(
       onTap: () => _onItemTapped(context, index),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(22),
+          // Subtle elegant shadow
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(
+                      alpha: 0.04,
+                    ), // Safe transparency
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -83,17 +102,25 @@ class CustomBottomNav extends StatelessWidget {
               color: isSelected ? const Color(0xFF4A8AF4) : Colors.black87,
               size: 22,
             ),
-            if (isSelected) ...[
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Color(0xFF4A8AF4),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ],
+            AnimatedSize(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.centerLeft,
+              child: isSelected
+                  ? Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          color: Color(0xFF4A8AF4),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                        maxLines: 1,
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
           ],
         ),
       ),

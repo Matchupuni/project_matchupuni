@@ -5,6 +5,7 @@ import '../widgets/side_drawer.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../services/saved_service.dart';
 import 'competition_detail_page.dart';
+import 'report_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -187,19 +188,20 @@ class _HomePageState extends State<HomePage> {
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 20.0),
                               child: _buildCompetitionCard(
+                                postId: card['id']?.toString() ?? '',
                                 title: card['name'] ?? 'No Title',
                                 posterName: "ICT Club",
                                 date: card['due_date'] != null
                                     ? DateTime.parse(
                                         card['due_date'].toString(),
-                                      ).toLocal().toString().substring(0, 16)
+                                      ).toLocal().toString().substring(0, 10)
                                     : "No Date",
                                 categories: categories,
                                 skillFields: skillFields,
                                 details:
                                     card['details'] ?? 'No details available.',
                                 link: card['register_link'] ?? '',
-                                contact: "No contact info",
+                                contact: card['contact'] ?? 'No contact info',
                                 imageUrl: card['image_path'],
                               ),
                             );
@@ -453,6 +455,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCompetitionCard({
+    required String postId,
     required String title,
     required String posterName,
     required String date,
@@ -589,6 +592,33 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ),
+                  if (postId.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ReportPage(postId: postId, postTitle: title),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color:
+                              Colors.red[50], // Soft red background for warning
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.report_problem_outlined,
+                          color: Colors.red[400], // Distinct red color
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
