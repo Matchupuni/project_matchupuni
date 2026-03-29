@@ -86,7 +86,7 @@ app.post('/users', async (req, res) => {
 // GET all posts (with optional tag filtering and post_type)
 app.get('/posts', async (req, res) => {
   try {
-    const { tag, field, post_type } = req.query;
+    const { tag, field, post_type, search } = req.query;
     let query = `
       SELECT 
         p.*, 
@@ -130,6 +130,11 @@ app.get('/posts', async (req, res) => {
     if (post_type) {
       queryParams.push(post_type);
       whereClauses.push(`p.post_type = $${queryParams.length}`);
+    }
+
+    if (search) {
+      queryParams.push(`%${search}%`);
+      whereClauses.push(`(p.name ILIKE $${queryParams.length} OR p.details ILIKE $${queryParams.length} OR p.role_needed ILIKE $${queryParams.length} OR p.required_skill ILIKE $${queryParams.length})`);
     }
 
     if (whereClauses.length > 0) {
