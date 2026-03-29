@@ -1,0 +1,19 @@
+{
+  "name": "matchpuni-be",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Thatphon",
+  "description": "",
+  "dependencies": {
+    "@paralleldrive/cuid2": "^3.3.0",
+    "argon2": "^0.44.0",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "multer": "^2.1.1",
+    "pg": "^8.20.0",
+    "uuid": "^13.0.0"
+  }
+}
