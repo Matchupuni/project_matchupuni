@@ -146,7 +146,7 @@ class _PostPageState extends State<PostPage> {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withValues(alpha: 0.05),
                                   blurRadius: 5,
                                 ),
                               ],
@@ -212,6 +212,21 @@ class _PostPageState extends State<PostPage> {
                         _withRequiredIndicator(_buildTagsRow()),
                       ),
                     ] else ...[
+                      // --- General Info ---
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "General Info",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF333333),
+                            ),
+                          ),
+                        ),
+                      ),
                       _buildLabelRow(
                         "Name:",
                         _withRequiredIndicator(
@@ -232,26 +247,39 @@ class _PostPageState extends State<PostPage> {
                         ),
                       ),
                       _buildLabelRow(
+                        "Type:",
+                        _withRequiredIndicator(_buildTypeRow()),
+                      ),
+                      _buildLabelRow(
                         "Due Date:",
                         _withRequiredIndicator(_buildDueDateField()),
                       ),
-                      _buildLabelRow(
-                        "Role Needed:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _roleNeededController,
+
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16.0),
+                        child: Divider(thickness: 1, color: Color(0xFFE0E0E0)),
+                      ),
+
+                      // --- Recruitment ---
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "Recruitment",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF333333),
+                            ),
                           ),
                         ),
                       ),
                       _buildLabelRow(
-                        "Teammates Needed:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _teammatesNeededController,
-                            isNumber: true,
-                          ),
+                        "Role Needed:",
+                        _buildTextField(
+                          "Type here....",
+                          controller: _roleNeededController,
                         ),
                       ),
                       _buildLabelRow(
@@ -264,24 +292,28 @@ class _PostPageState extends State<PostPage> {
                         ),
                       ),
                       _buildLabelRow(
-                        "Type:",
-                        _withRequiredIndicator(_buildTypeRow()),
-                      ),
-                        _buildLabelRow(
-                          "Register:",
-                          _withRequiredIndicator(
-                            _buildTextField(
-                              "Type here....",
-                              controller: _registerLinkController,
-                            ),
+                        "Teammates Needed:",
+                        _withRequiredIndicator(
+                          _buildNumberCounter(
+                            controller: _teammatesNeededController,
                           ),
                         ),
+                      ),
                       _buildLabelRow(
                         "Contact:",
                         _withRequiredIndicator(
                           _buildTextField(
                             "Type here....",
                             controller: _contactController,
+                          ),
+                        ),
+                      ),
+                      _buildLabelRow(
+                        "Register:",
+                        _withRequiredIndicator(
+                          _buildTextField(
+                            "Type here....",
+                            controller: _registerLinkController,
                           ),
                         ),
                       ),
@@ -398,7 +430,7 @@ class _PostPageState extends State<PostPage> {
           border: Border.all(color: const Color(0xFFD3DEF5), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -572,6 +604,63 @@ class _PostPageState extends State<PostPage> {
             vertical: 10,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildNumberCounter({required TextEditingController controller}) {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.remove, color: Colors.black54),
+            onPressed: () {
+              int currentValue = int.tryParse(controller.text) ?? 1;
+              if (currentValue > 1) {
+                setState(() {
+                  controller.text = (currentValue - 1).toString();
+                });
+              }
+            },
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: "1",
+                hintStyle: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
+                ),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add, color: Colors.black54),
+            onPressed: () {
+              int currentValue = int.tryParse(controller.text) ?? 0;
+              if (currentValue == 0 && controller.text.isEmpty) {
+                currentValue = 1;
+              }
+              setState(() {
+                controller.text = (currentValue + 1).toString();
+              });
+            },
+          ),
+        ],
       ),
     );
   }

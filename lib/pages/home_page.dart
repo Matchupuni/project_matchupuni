@@ -15,7 +15,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Current selected category
+  // Sort state
+  String _sortBy = 'Newest';
+
+  // Category filter state
   List<String> _selectedCategories = ['All'];
   bool _isFilterExpanded = false;
 
@@ -40,9 +43,13 @@ class _HomePageState extends State<HomePage> {
     try {
       Map<String, dynamic> queryParams = {'post_type': 'activity'};
 
+      if (_searchQuery.isNotEmpty) {
+        queryParams['search'] = _searchQuery;
+      }
+
       if (!_selectedCategories.contains('All') &&
           _selectedCategories.isNotEmpty) {
-        // http package converts a List into multiple query parameters
+        // using 'tag' for home_page activity categories
         queryParams['tag'] = _selectedCategories;
       }
 
@@ -59,6 +66,18 @@ class _HomePageState extends State<HomePage> {
         if (mounted) {
           setState(() {
             _cards = json.decode(response.body);
+            // Sorting
+            if (_sortBy == 'Newest') {
+              _cards.sort(
+                (a, b) =>
+                    (b['created_at'] ?? '').compareTo(a['created_at'] ?? ''),
+              );
+            } else {
+              _cards.sort(
+                (a, b) =>
+                    (a['created_at'] ?? '').compareTo(b['created_at'] ?? ''),
+              );
+            }
             _isLoading = false;
           });
         }
@@ -122,35 +141,30 @@ class _HomePageState extends State<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildHeader(),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 10),
+                        // Top Section: Greeting, Profile, Theme Toggle
                         _buildSearchBar(),
-                        /* Restored Filter UI per user request */
+                        const SizedBox(height: 10),
+
+                        // Expandable Filter Section
                         AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 400),
-                          reverseDuration: const Duration(milliseconds: 300),
-                          transitionBuilder:
-                              (Widget child, Animation<double> animation) {
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: SizeTransition(
-                                    sizeFactor: animation,
-                                    axisAlignment: -1.0,
-                                    child: child,
-                                  ),
-                                );
-                              },
+                          duration: const Duration(milliseconds: 300),
                           child: _isFilterExpanded
                               ? Padding(
                                   key: const ValueKey('expanded_filters'),
-                                  padding: const EdgeInsets.only(top: 25.0),
-                                  child: _buildCategories(),
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [_buildCategories()],
+                                  ),
                                 )
                               : const SizedBox(
                                   key: ValueKey('collapsed_filters'),
                                 ),
                         ),
                         if (_searchQuery.isNotEmpty) ...[
-                          const SizedBox(height: 25),
+                          const SizedBox(height: 15),
                           Text(
                             "Search Results for \"$_searchQuery\"",
                             style: const TextStyle(
@@ -160,7 +174,10 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                         ],
-                        const SizedBox(height: 25),
+                        const SizedBox(height: 10),
+                        _buildSortOptions(),
+                        const SizedBox(height: 15),
+
                         if (_isLoading)
                           const Center(
                             child: Padding(
@@ -280,7 +297,9 @@ class _HomePageState extends State<HomePage> {
           child: Icon(
             Icons.filter_alt,
             size: 26,
-            color: _isFilterExpanded ? const Color(0xFF4285F4) : Colors.black,
+            color: _isFilterExpanded
+                ? const Color(0xFF4285F4)
+                : const Color(0xFF1E293B),
           ),
         ),
         const SizedBox(width: 12),
@@ -288,7 +307,7 @@ class _HomePageState extends State<HomePage> {
           child: Container(
             height: 44,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFDE82), // Light amber/yellow
+              color: const Color(0xFFFFDE82),
               borderRadius: BorderRadius.circular(24),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -297,16 +316,18 @@ class _HomePageState extends State<HomePage> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
+                    style: const TextStyle(color: Colors.black87),
                     textInputAction: TextInputAction.search,
                     onSubmitted: (value) {
                       setState(() {
                         _searchQuery = value.trim();
                       });
+                      _fetchCards();
                     },
                     decoration: InputDecoration(
                       hintText: 'Search For Find ...',
                       hintStyle: TextStyle(
-                        color: Colors.grey[500],
+                        color: Colors.grey[600],
                         fontSize: 15,
                       ),
                       border: InputBorder.none,
@@ -321,6 +342,7 @@ class _HomePageState extends State<HomePage> {
                         _searchController.clear();
                         _searchQuery = '';
                       });
+                      _fetchCards();
                     },
                     child: const Icon(
                       Icons.close,
@@ -334,8 +356,13 @@ class _HomePageState extends State<HomePage> {
                     setState(() {
                       _searchQuery = _searchController.text.trim();
                     });
+                    _fetchCards();
                   },
-                  child: const Icon(Icons.search, color: Colors.black87),
+                  child: const Icon(
+                    Icons.search,
+                    color: Colors.black87,
+                    size: 26,
+                  ),
                 ),
               ],
             ),
@@ -389,8 +416,8 @@ class _HomePageState extends State<HomePage> {
         ),
         const SizedBox(height: 12),
         Wrap(
-          spacing: 8.0, // Gap between adjacent chips
-          runSpacing: 10.0, // Gap between lines
+          spacing: 8.0,
+          runSpacing: 10.0,
           children: categories.map((cat) {
             final isSelected = _selectedCategories.contains(cat);
             return GestureDetector(
@@ -399,16 +426,12 @@ class _HomePageState extends State<HomePage> {
                   if (cat == 'All') {
                     _selectedCategories = ['All'];
                   } else {
-                    // Remove 'All' if it was there
                     _selectedCategories.remove('All');
-
                     if (isSelected) {
                       _selectedCategories.remove(cat);
                     } else {
                       _selectedCategories.add(cat);
                     }
-
-                    // If everything removed, back to 'All'
                     if (_selectedCategories.isEmpty) {
                       _selectedCategories = ['All'];
                     }
@@ -430,7 +453,9 @@ class _HomePageState extends State<HomePage> {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF4285F4).withOpacity(0.3),
+                            color: const Color(
+                              0xFF4285F4,
+                            ).withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -441,14 +466,111 @@ class _HomePageState extends State<HomePage> {
                   cat,
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.grey[700],
-                    fontWeight:
-                        FontWeight.w600, // Keep weight fixed to avoid jump
+                    fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
                 ),
               ),
             );
           }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSortOptions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Sort by",
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _sortBy = 'Newest';
+                  _fetchCards();
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: _sortBy == 'Newest'
+                      ? const Color(0xFFE91E63)
+                      : const Color(0xFFD3DEF5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      "Newest",
+                      style: TextStyle(
+                        color: _sortBy == 'Newest'
+                            ? Colors.white
+                            : Colors.grey[700],
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (_sortBy == 'Newest') ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.check, color: Colors.white, size: 14),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _sortBy = 'Oldest';
+                  _fetchCards();
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: _sortBy == 'Oldest'
+                      ? const Color(0xFFE91E63)
+                      : const Color(0xFFD3DEF5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      "Oldest",
+                      style: TextStyle(
+                        color: _sortBy == 'Oldest'
+                            ? Colors.white
+                            : Colors.grey[700],
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (_sortBy == 'Oldest') ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.check, color: Colors.white, size: 14),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

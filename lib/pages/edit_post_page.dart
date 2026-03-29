@@ -6,7 +6,6 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../widgets/custom_bottom_nav.dart';
-import 'my_posts_page.dart';
 
 class EditPostPage extends StatefulWidget {
   final Map<String, dynamic> cardData;
@@ -95,11 +94,6 @@ class _EditPostPageState extends State<EditPostPage> {
       _teammatesNeededController.text =
           widget.cardData['teammates_needed']?.toString() ?? '';
       _requiredSkillController.text = widget.cardData['required_skill'] ?? '';
-      _contactController.text = widget.cardData['contact'] ?? '';
-      _detailsController.text = widget.cardData['details'] ?? '';
-    } else {
-      _detailsController.text = widget.cardData['details'] ?? '';
-      _contactController.text = widget.cardData['contact'] ?? '';
     }
   }
 
@@ -172,7 +166,7 @@ class _EditPostPageState extends State<EditPostPage> {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withValues(alpha: 0.05),
                                   blurRadius: 5,
                                 ),
                               ],
@@ -249,6 +243,21 @@ class _EditPostPageState extends State<EditPostPage> {
                         _withRequiredIndicator(_buildTagsRow()),
                       ),
                     ] else ...[
+                      // --- General Info ---
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "General Info",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF333333),
+                            ),
+                          ),
+                        ),
+                      ),
                       _buildLabelRow(
                         "Name:",
                         _withRequiredIndicator(
@@ -269,26 +278,39 @@ class _EditPostPageState extends State<EditPostPage> {
                         ),
                       ),
                       _buildLabelRow(
+                        "Type:",
+                        _withRequiredIndicator(_buildTypeRow()),
+                      ),
+                      _buildLabelRow(
                         "Due Date:",
                         _withRequiredIndicator(_buildDueDateField()),
                       ),
-                      _buildLabelRow(
-                        "Role Needed:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _roleNeededController,
+
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16.0),
+                        child: Divider(thickness: 1, color: Color(0xFFE0E0E0)),
+                      ),
+
+                      // --- Recruitment ---
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "Recruitment",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF333333),
+                            ),
                           ),
                         ),
                       ),
                       _buildLabelRow(
-                        "Teammates Needed:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _teammatesNeededController,
-                            isNumber: true,
-                          ),
+                        "Role Needed:",
+                        _buildTextField(
+                          "Type here....",
+                          controller: _roleNeededController,
                         ),
                       ),
                       _buildLabelRow(
@@ -301,8 +323,12 @@ class _EditPostPageState extends State<EditPostPage> {
                         ),
                       ),
                       _buildLabelRow(
-                        "Type:",
-                        _withRequiredIndicator(_buildTypeRow()),
+                        "Teammates Needed:",
+                        _withRequiredIndicator(
+                          _buildNumberCounter(
+                            controller: _teammatesNeededController,
+                          ),
+                        ),
                       ),
                       _buildLabelRow(
                         "Contact:",
@@ -315,9 +341,11 @@ class _EditPostPageState extends State<EditPostPage> {
                       ),
                       _buildLabelRow(
                         "Register:",
-                        _buildTextField(
-                          "Link form...",
-                          controller: _registerLinkController,
+                        _withRequiredIndicator(
+                          _buildTextField(
+                            "Type here....",
+                            controller: _registerLinkController,
+                          ),
                         ),
                       ),
                     ],
@@ -340,83 +368,20 @@ class _EditPostPageState extends State<EditPostPage> {
   Widget _buildToggleButtons() {
     return Container(
       height: 38,
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFFD3DEF5),
+        color: const Color(0xFF4A8AF4),
         borderRadius: BorderRadius.circular(22),
       ),
-      child: Stack(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _isActivitySelected = true),
-                  child: Container(
-                    color: Colors.transparent,
-                    child: Center(
-                      child: Text(
-                        "Activity",
-                        style: TextStyle(
-                          color: _isActivitySelected
-                              ? Colors.white
-                              : Colors.grey[600],
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _isActivitySelected = false),
-                  child: Container(
-                    color: Colors.transparent,
-                    child: Center(
-                      child: Text(
-                        "Find Teammates",
-                        style: TextStyle(
-                          color: !_isActivitySelected
-                              ? Colors.white
-                              : Colors.grey[600],
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+      child: Center(
+        child: Text(
+          _isActivitySelected ? "Activity" : "Find Teammates",
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
           ),
-          AnimatedAlign(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            alignment: _isActivitySelected
-                ? Alignment.centerLeft
-                : Alignment.centerRight,
-            child: FractionallySizedBox(
-              widthFactor: 0.5,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4A8AF4),
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Center(
-                  child: Text(
-                    _isActivitySelected ? "Activity" : "Find Teammates",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -433,7 +398,7 @@ class _EditPostPageState extends State<EditPostPage> {
           border: Border.all(color: const Color(0xFFD3DEF5), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -607,6 +572,63 @@ class _EditPostPageState extends State<EditPostPage> {
             vertical: 10,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildNumberCounter({required TextEditingController controller}) {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.remove, color: Colors.black54),
+            onPressed: () {
+              int currentValue = int.tryParse(controller.text) ?? 1;
+              if (currentValue > 1) {
+                setState(() {
+                  controller.text = (currentValue - 1).toString();
+                });
+              }
+            },
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: "1",
+                hintStyle: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
+                ),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add, color: Colors.black54),
+            onPressed: () {
+              int currentValue = int.tryParse(controller.text) ?? 0;
+              if (currentValue == 0 && controller.text.isEmpty) {
+                currentValue = 1;
+              }
+              setState(() {
+                controller.text = (currentValue + 1).toString();
+              });
+            },
+          ),
+        ],
       ),
     );
   }

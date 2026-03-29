@@ -43,6 +43,10 @@ class _TeamPageState extends State<TeamPage> {
     try {
       Map<String, dynamic> queryParams = {'post_type': 'team'};
 
+      if (_searchQuery.isNotEmpty) {
+        queryParams['search'] = _searchQuery;
+      }
+
       if (!_selectedCategories.contains('All') &&
           _selectedCategories.isNotEmpty) {
         queryParams['field'] = _selectedCategories;
@@ -122,8 +126,9 @@ class _TeamPageState extends State<TeamPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildHeader(),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 10),
                         _buildSearchBar(),
+                        const SizedBox(height: 10),
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 400),
                           reverseDuration: const Duration(milliseconds: 300),
@@ -141,7 +146,10 @@ class _TeamPageState extends State<TeamPage> {
                           child: _isFilterExpanded
                               ? Padding(
                                   key: const ValueKey('expanded_filters'),
-                                  padding: const EdgeInsets.only(top: 25.0),
+                                  padding: const EdgeInsets.only(
+                                    top: 10.0,
+                                    bottom: 10.0,
+                                  ),
                                   child: _buildCategories(),
                                 )
                               : const SizedBox(
@@ -149,7 +157,7 @@ class _TeamPageState extends State<TeamPage> {
                                 ),
                         ),
                         if (_searchQuery.isNotEmpty) ...[
-                          const SizedBox(height: 25),
+                          const SizedBox(height: 15),
                           Text(
                             "Search Results for \"$_searchQuery\"",
                             style: const TextStyle(
@@ -159,9 +167,9 @@ class _TeamPageState extends State<TeamPage> {
                             ),
                           ),
                         ],
-                        const SizedBox(height: 25),
+                        const SizedBox(height: 10),
                         _buildSortOptions(),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 15),
                         if (_isLoading)
                           const Center(
                             child: Padding(
@@ -219,7 +227,9 @@ class _TeamPageState extends State<TeamPage> {
                                         post['contact'] ?? 'No contact info',
                                     imageUrl: post['image_path'],
                                     link: post['register_link'] ?? 'N/A',
-                                    requiredSkill: post['required_skill'],
+                                    requiredSkill:
+                                        post['required_skill']?.toString() ??
+                                        'Any Skill',
                                   ),
                                 );
                               }).toList(),
@@ -329,11 +339,12 @@ class _TeamPageState extends State<TeamPage> {
                       setState(() {
                         _searchQuery = value.trim();
                       });
+                      _fetchTeamPosts();
                     },
                     decoration: InputDecoration(
                       hintText: 'Search skill, project, topic ...',
                       hintStyle: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 15,
                       ),
                       border: InputBorder.none,
@@ -348,6 +359,7 @@ class _TeamPageState extends State<TeamPage> {
                         _searchController.clear();
                         _searchQuery = '';
                       });
+                      _fetchTeamPosts();
                     },
                     child: const Icon(
                       Icons.close,
@@ -361,6 +373,7 @@ class _TeamPageState extends State<TeamPage> {
                     setState(() {
                       _searchQuery = _searchController.text.trim();
                     });
+                    _fetchTeamPosts();
                   },
                   child: const Icon(
                     Icons.search,
@@ -457,7 +470,9 @@ class _TeamPageState extends State<TeamPage> {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF4285F4).withOpacity(0.3),
+                            color: const Color(
+                              0xFF4285F4,
+                            ).withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -584,7 +599,7 @@ class _TeamPageState extends State<TeamPage> {
     required String contact,
     String? imageUrl,
     required String link,
-    String? requiredSkill,
+    required String requiredSkill,
   }) {
     final isSaved = SavedService.isSaved(title);
 
@@ -594,7 +609,7 @@ class _TeamPageState extends State<TeamPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -647,7 +662,7 @@ class _TeamPageState extends State<TeamPage> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -800,11 +815,11 @@ class _TeamPageState extends State<TeamPage> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.work, size: 16, color: Color(0xFFE91E63)),
+                    const Icon(Icons.star, size: 16, color: Color(0xFFE91E63)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        "Role Needed: $roleCategory",
+                        "Required Skill: $requiredSkill",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.grey[700],
