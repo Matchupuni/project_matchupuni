@@ -6,6 +6,7 @@ import '../widgets/custom_bottom_nav.dart';
 import '../services/saved_service.dart';
 import 'competition_detail_page.dart';
 import 'report_page.dart';
+import 'search_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -22,8 +23,7 @@ class _HomePageState extends State<HomePage> {
   List<String> _selectedCategories = ['All'];
   bool _isFilterExpanded = false;
 
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
+
 
   List<dynamic> _cards = [];
   bool _isLoading = true;
@@ -42,10 +42,6 @@ class _HomePageState extends State<HomePage> {
     }
     try {
       Map<String, dynamic> queryParams = {'post_type': 'activity'};
-
-      if (_searchQuery.isNotEmpty) {
-        queryParams['search'] = _searchQuery;
-      }
 
       if (!_selectedCategories.contains('All') &&
           _selectedCategories.isNotEmpty) {
@@ -101,7 +97,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -133,26 +128,45 @@ class _HomePageState extends State<HomePage> {
                 child: SafeArea(
                   bottom: false,
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0,
-                      vertical: 10.0,
-                    ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildHeader(),
+                        const SizedBox(height: 10),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: _buildHeader(),
+                        ),
                         const SizedBox(height: 10),
                         // Top Section: Greeting, Profile, Theme Toggle
-                        _buildSearchBar(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: _buildSearchBar(),
+                        ),
                         const SizedBox(height: 10),
 
                         // Expandable Filter Section
                         AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
+                          duration: const Duration(milliseconds: 400),
+                          reverseDuration: const Duration(milliseconds: 300),
+                          transitionBuilder:
+                              (Widget child, Animation<double> animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SizeTransition(
+                                sizeFactor: animation,
+                                axisAlignment: -1.0,
+                                child: child,
+                              ),
+                            );
+                          },
                           child: _isFilterExpanded
                               ? Padding(
                                   key: const ValueKey('expanded_filters'),
-                                  padding: const EdgeInsets.only(bottom: 10),
+                                  padding: const EdgeInsets.only(
+                                    left: 20.0,
+                                    right: 20.0,
+                                    bottom: 10.0,
+                                  ),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -161,21 +175,15 @@ class _HomePageState extends State<HomePage> {
                                 )
                               : const SizedBox(
                                   key: ValueKey('collapsed_filters'),
+                                  width: double.infinity,
                                 ),
                         ),
-                        if (_searchQuery.isNotEmpty) ...[
-                          const SizedBox(height: 15),
-                          Text(
-                            "Search Results for \"$_searchQuery\"",
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2C3246),
-                            ),
-                          ),
-                        ],
+
                         const SizedBox(height: 10),
-                        _buildSortOptions(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: _buildSortOptions(),
+                        ),
                         const SizedBox(height: 15),
 
                         if (_isLoading)
@@ -304,67 +312,41 @@ class _HomePageState extends State<HomePage> {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Container(
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFDE82),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    style: const TextStyle(color: Colors.black87),
-                    textInputAction: TextInputAction.search,
-                    onSubmitted: (value) {
-                      setState(() {
-                        _searchQuery = value.trim();
-                      });
-                      _fetchCards();
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search For Find ...',
-                      hintStyle: TextStyle(
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      const SearchPage(searchType: 'activity'),
+                ),
+              );
+            },
+            child: Container(
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFDE82),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Search For Find ...',
+                      style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 15,
                       ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.only(bottom: 5),
                     ),
                   ),
-                ),
-                if (_searchQuery.isNotEmpty)
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _searchController.clear();
-                        _searchQuery = '';
-                      });
-                      _fetchCards();
-                    },
-                    child: const Icon(
-                      Icons.close,
-                      color: Colors.black54,
-                      size: 20,
-                    ),
-                  ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _searchQuery = _searchController.text.trim();
-                    });
-                    _fetchCards();
-                  },
-                  child: const Icon(
+                  const Icon(
                     Icons.search,
                     color: Colors.black87,
                     size: 26,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -591,7 +573,7 @@ class _HomePageState extends State<HomePage> {
     final isSaved = SavedService.isSaved(title);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -812,7 +794,7 @@ class _HomePageState extends State<HomePage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF9CBEEB), // Light blue banner theme
+                  color: Color(0xFFE91E63),
                 ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,

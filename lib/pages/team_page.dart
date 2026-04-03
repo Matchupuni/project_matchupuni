@@ -6,6 +6,7 @@ import '../widgets/custom_bottom_nav.dart';
 import '../services/saved_service.dart';
 import 'competition_detail_page.dart';
 import 'report_page.dart';
+import 'search_page.dart';
 
 class TeamPage extends StatefulWidget {
   const TeamPage({super.key});
@@ -22,8 +23,7 @@ class _TeamPageState extends State<TeamPage> {
   List<String> _selectedCategories = ['All'];
   bool _isFilterExpanded = false;
 
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
+
 
   List<dynamic> _teamPosts = [];
   bool _isLoading = true;
@@ -43,10 +43,6 @@ class _TeamPageState extends State<TeamPage> {
     try {
       Map<String, dynamic> queryParams = {'post_type': 'team'};
 
-      if (_searchQuery.isNotEmpty) {
-        queryParams['search'] = _searchQuery;
-      }
-
       if (!_selectedCategories.contains('All') &&
           _selectedCategories.isNotEmpty) {
         queryParams['field'] = _selectedCategories;
@@ -65,6 +61,18 @@ class _TeamPageState extends State<TeamPage> {
         if (mounted) {
           setState(() {
             _teamPosts = json.decode(response.body);
+            // Sorting
+            if (_sortBy == 'Newest') {
+              _teamPosts.sort(
+                (a, b) =>
+                    (b['created_at'] ?? '').compareTo(a['created_at'] ?? ''),
+              );
+            } else {
+              _teamPosts.sort(
+                (a, b) =>
+                    (a['created_at'] ?? '').compareTo(b['created_at'] ?? ''),
+              );
+            }
             _isLoading = false;
           });
         }
@@ -86,7 +94,6 @@ class _TeamPageState extends State<TeamPage> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -118,16 +125,19 @@ class _TeamPageState extends State<TeamPage> {
                 child: SafeArea(
                   bottom: false,
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0,
-                      vertical: 10.0,
-                    ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildHeader(),
                         const SizedBox(height: 10),
-                        _buildSearchBar(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: _buildHeader(),
+                        ),
+                        const SizedBox(height: 10),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: _buildSearchBar(),
+                        ),
                         const SizedBox(height: 10),
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 400),
@@ -147,6 +157,8 @@ class _TeamPageState extends State<TeamPage> {
                               ? Padding(
                                   key: const ValueKey('expanded_filters'),
                                   padding: const EdgeInsets.only(
+                                    left: 20.0,
+                                    right: 20.0,
                                     top: 10.0,
                                     bottom: 10.0,
                                   ),
@@ -154,21 +166,14 @@ class _TeamPageState extends State<TeamPage> {
                                 )
                               : const SizedBox(
                                   key: ValueKey('collapsed_filters'),
+                                  width: double.infinity,
                                 ),
                         ),
-                        if (_searchQuery.isNotEmpty) ...[
-                          const SizedBox(height: 15),
-                          Text(
-                            "Search Results for \"$_searchQuery\"",
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2C3246),
-                            ),
-                          ),
-                        ],
                         const SizedBox(height: 10),
-                        _buildSortOptions(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: _buildSortOptions(),
+                        ),
                         const SizedBox(height: 15),
                         if (_isLoading)
                           const Center(
@@ -186,7 +191,7 @@ class _TeamPageState extends State<TeamPage> {
                           )
                         else
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Column(
                               children: _teamPosts.map((post) {
                                 final List<String> categories =
@@ -321,67 +326,41 @@ class _TeamPageState extends State<TeamPage> {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Container(
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE91E63), // Pink/Red
-              borderRadius: BorderRadius.circular(24),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    style: const TextStyle(color: Colors.white),
-                    textInputAction: TextInputAction.search,
-                    onSubmitted: (value) {
-                      setState(() {
-                        _searchQuery = value.trim();
-                      });
-                      _fetchTeamPosts();
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search skill, project, topic ...',
-                      hintStyle: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      const SearchPage(searchType: 'team'),
+                ),
+              );
+            },
+            child: Container(
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFDE82),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Search skill, project, topic ...',
+                      style: TextStyle(
+                        color: Colors.grey[600],
                         fontSize: 15,
                       ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.only(bottom: 5),
                     ),
                   ),
-                ),
-                if (_searchQuery.isNotEmpty)
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _searchController.clear();
-                        _searchQuery = '';
-                      });
-                      _fetchTeamPosts();
-                    },
-                    child: const Icon(
-                      Icons.close,
-                      color: Colors.white70,
-                      size: 20,
-                    ),
-                  ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _searchQuery = _searchController.text.trim();
-                    });
-                    _fetchTeamPosts();
-                  },
-                  child: const Icon(
+                  const Icon(
                     Icons.search,
-                    color: Colors.white,
+                    color: Colors.black87,
                     size: 26,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -512,7 +491,10 @@ class _TeamPageState extends State<TeamPage> {
           children: [
             GestureDetector(
               onTap: () {
-                setState(() => _sortBy = 'Newest');
+                setState(() {
+                  _sortBy = 'Newest';
+                  _fetchTeamPosts();
+                });
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -548,7 +530,10 @@ class _TeamPageState extends State<TeamPage> {
             const SizedBox(width: 10),
             GestureDetector(
               onTap: () {
-                setState(() => _sortBy = 'Oldest');
+                setState(() {
+                  _sortBy = 'Oldest';
+                  _fetchTeamPosts();
+                });
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -876,7 +861,7 @@ class _TeamPageState extends State<TeamPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: const BoxDecoration(
-                color: Color(0xFF9CBEEB), // Light blue banner
+                color: Color(0xFFE91E63),
               ),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,

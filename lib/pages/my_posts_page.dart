@@ -555,7 +555,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: const BoxDecoration(
-                          color: Color(0xFF9CBEEB),
+                          color: Color(0xFFE91E63),
                         ),
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
