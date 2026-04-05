@@ -1,9 +1,9 @@
 const uploadFile = (req, res) => {
-  if (!req.file) {
+  if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
-  const filePath = `/public/uploads/${req.file.filename}`;
-  res.json({ path: filePath, filename: req.file.filename });
+  const filePaths = req.files.map(file => `/public/uploads/${file.filename}`);
+  res.json({ paths: filePaths });
 };
 
 module.exports = {
