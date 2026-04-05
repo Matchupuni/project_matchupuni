@@ -609,13 +609,13 @@ class _TeamPageState extends State<TeamPage> {
             children: [
               if (imageUrl != null && imageUrl.isNotEmpty)
                 Image.network(
-                  'http://localhost:3000$imageUrl',
-                  height: 120,
+                  'http://localhost:3000${imageUrl.split(',').first}',
+                  height: 140,
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
-                      height: 120,
+                      height: 140,
                       decoration: const BoxDecoration(
                         color: Color(0xFFE8F0FE),
                         image: DecorationImage(
@@ -628,7 +628,7 @@ class _TeamPageState extends State<TeamPage> {
                 )
               else
                 Container(
-                  height: 120,
+                  height: 140,
                   decoration: const BoxDecoration(
                     color: Color(0xFFE8F0FE),
                     image: DecorationImage(

@@ -577,7 +577,7 @@ class _SearchPageState extends State<SearchPage> {
               children: [
                 imageUrl != null && imageUrl.isNotEmpty
                     ? Image.network(
-                        'http://localhost:3000$imageUrl',
+                        'http://localhost:3000${imageUrl.split(',').first}',
                         height: 140,
                         width: double.infinity,
                         fit: BoxFit.cover,
@@ -726,7 +726,7 @@ class _SearchPageState extends State<SearchPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             // Tags
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -741,7 +741,36 @@ class _SearchPageState extends State<SearchPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            // Details Preview (to match TeamPage height footprint)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.info_outline, size: 16, color: Color(0xFFE91E63)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          details.isNotEmpty ? details : "No details available.",
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[700],
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12), // Spacer below details
             // See more
             GestureDetector(
               onTap: () {

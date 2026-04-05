@@ -27,6 +27,7 @@ class _EditPostPageState extends State<EditPostPage> {
   ];
   final List<String> _selectedTags = [];
   final List<File> _selectedImages = [];
+  List<String> _existingNetworkImages = [];
   final ImagePicker _picker = ImagePicker();
   DateTime? _selectedDate;
   bool _isActivitySelected = true;
@@ -80,6 +81,15 @@ class _EditPostPageState extends State<EditPostPage> {
       _selectedTypes.addAll(List<String>.from(widget.cardData['fields']));
     }
 
+    final String? imgPathStr = widget.cardData['image_path']?.toString();
+    if (imgPathStr != null && imgPathStr.isNotEmpty) {
+      _existingNetworkImages = imgPathStr
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+
     if (widget.cardData['due_date'] != null) {
       _selectedDate = DateTime.tryParse(
         widget.cardData['due_date'].toString(),
@@ -97,12 +107,33 @@ class _EditPostPageState extends State<EditPostPage> {
     }
   }
 
+  bool _isPickingImages = false;
+
   Future<void> _pickImages() async {
-    final List<XFile> images = await _picker.pickMultiImage();
-    if (images.isNotEmpty) {
-      setState(() {
-        _selectedImages.addAll(images.map((image) => File(image.path)));
-      });
+    if (_isPickingImages) return;
+    setState(() {
+      _isPickingImages = true;
+    });
+
+    try {
+      final List<XFile> images = await _picker.pickMultiImage();
+      if (images.isNotEmpty) {
+        setState(() {
+          for (var image in images) {
+            if (_existingNetworkImages.length + _selectedImages.length < 5) {
+              _selectedImages.add(File(image.path));
+            }
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Error picking images: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPickingImages = false;
+        });
+      }
     }
   }
 
@@ -387,8 +418,10 @@ class _EditPostPageState extends State<EditPostPage> {
   }
 
   Widget _buildPhotoUploadBox() {
+    final bool hasImages = _existingNetworkImages.isNotEmpty || _selectedImages.isNotEmpty;
+
     return GestureDetector(
-      onTap: _pickImages,
+      onTap: !hasImages ? _pickImages : null,
       child: Container(
         height: 150,
         width: double.infinity,
@@ -404,7 +437,7 @@ class _EditPostPageState extends State<EditPostPage> {
             ),
           ],
         ),
-        child: _selectedImages.isEmpty
+        child: !hasImages
             ? _buildPlaceholderContent()
             : _buildImageGrid(),
       ),
@@ -453,17 +486,19 @@ class _EditPostPageState extends State<EditPostPage> {
   }
 
   Widget _buildImageGrid() {
+    final int totalImages = _existingNetworkImages.length + _selectedImages.length;
+
     return GridView.builder(
       padding: const EdgeInsets.all(8),
       scrollDirection: Axis.horizontal,
-      itemCount: _selectedImages.length + 1,
+      itemCount: totalImages < 5 ? totalImages + 1 : 5,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 1,
         mainAxisSpacing: 8,
         childAspectRatio: 1,
       ),
       itemBuilder: (context, index) {
-        if (index == _selectedImages.length) {
+        if (index == totalImages) {
           return GestureDetector(
             onTap: _pickImages,
             child: Container(
@@ -479,16 +514,32 @@ class _EditPostPageState extends State<EditPostPage> {
             ),
           );
         }
+
+        final bool isNetwork = index < _existingNetworkImages.length;
+
         return Stack(
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.file(
-                _selectedImages[index],
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-              ),
+              child: isNetwork
+                  ? Image.network(
+                      'http://localhost:3000${_existingNetworkImages[index]}',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: const Color(0xFFE8F0FE),
+                          child: const Icon(Icons.broken_image, color: Colors.grey),
+                        );
+                      },
+                    )
+                  : Image.file(
+                      _selectedImages[index - _existingNetworkImages.length],
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
             ),
             Positioned(
               top: 4,
@@ -496,7 +547,11 @@ class _EditPostPageState extends State<EditPostPage> {
               child: GestureDetector(
                 onTap: () {
                   setState(() {
-                    _selectedImages.removeAt(index);
+                    if (isNetwork) {
+                      _existingNetworkImages.removeAt(index);
+                    } else {
+                      _selectedImages.removeAt(index - _existingNetworkImages.length);
+                    }
                   });
                 },
                 child: Container(
@@ -823,15 +878,83 @@ class _EditPostPageState extends State<EditPostPage> {
 
   Future<void> _submitPost() async {
     final String name = _nameController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a Name for the post')),
+
+    // 1. Photos Check (At least one image required - either existing or new)
+    if (_existingNetworkImages.isEmpty && _selectedImages.isEmpty) {
+      _showCustomSnackBar(
+        message: 'Please provide at least one photo',
+        isError: true,
       );
       return;
     }
 
+    // 2. Name Check
+    if (name.isEmpty) {
+      _showCustomSnackBar(
+        message: 'Please enter a Name for the post',
+        isError: true,
+      );
+      return;
+    }
+
+    // 3. Details Check
     String details = _detailsController.text.trim();
-    String? uploadedImagePath = widget.cardData['image_path'];
+    if (details.isEmpty) {
+      _showCustomSnackBar(
+        message: 'Please enter Details for the post',
+        isError: true,
+      );
+      return;
+    }
+
+    // 4. Mode Specific Checks
+    if (_isActivitySelected) {
+      // Activity Mode Requirements
+      if (_selectedDate == null) {
+        _showCustomSnackBar(message: 'Please select a Due Date', isError: true);
+        return;
+      }
+      if (_registerLinkController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter a Register link', isError: true);
+        return;
+      }
+      if (_contactController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter Contact info', isError: true);
+        return;
+      }
+      if (_selectedTags.isEmpty) {
+        _showCustomSnackBar(message: 'Please select at least one Tag', isError: true);
+        return;
+      }
+    } else {
+      // Find Teammates Mode Requirements
+      if (_selectedTypes.isEmpty) {
+        _showCustomSnackBar(message: 'Please select a Type', isError: true);
+        return;
+      }
+      if (_selectedDate == null) {
+        _showCustomSnackBar(message: 'Please select a Due Date', isError: true);
+        return;
+      }
+      if (_requiredSkillController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter Required Skills', isError: true);
+        return;
+      }
+      if (_teammatesNeededController.text.trim().isEmpty || 
+          _teammatesNeededController.text.trim() == "0") {
+        _showCustomSnackBar(message: 'Please specify Teammates Needed', isError: true);
+        return;
+      }
+      if (_contactController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter Contact info', isError: true);
+        return;
+      }
+      if (_registerLinkController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter a Register link', isError: true);
+        return;
+      }
+    }
+    String finalImagePath = _existingNetworkImages.join(',');
 
     try {
       if (_selectedImages.isNotEmpty) {
@@ -839,20 +962,28 @@ class _EditPostPageState extends State<EditPostPage> {
           'POST',
           Uri.parse('http://localhost:3000/upload'),
         );
-        uploadRequest.files.add(
-          await http.MultipartFile.fromPath('file', _selectedImages.first.path),
-        );
+        for (var image in _selectedImages) {
+          uploadRequest.files.add(
+            await http.MultipartFile.fromPath('files', image.path),
+          );
+        }
 
         var uploadResponse = await uploadRequest.send();
         if (uploadResponse.statusCode == 200) {
           var responseData = await http.Response.fromStream(uploadResponse);
           var jsonMap = json.decode(responseData.body);
-          uploadedImagePath =
-              jsonMap['path']; // Gets something like /public/uploads/...
+          final String newUploadedPaths = (jsonMap['paths'] as List).join(',');
+          
+          if (finalImagePath.isNotEmpty) {
+            finalImagePath = '$finalImagePath,$newUploadedPaths';
+          } else {
+            finalImagePath = newUploadedPaths;
+          }
         } else {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to upload image')),
+            _showCustomSnackBar(
+              message: 'Failed to upload image: ${uploadResponse.statusCode}',
+              isError: true,
             );
           }
           return;
@@ -864,7 +995,7 @@ class _EditPostPageState extends State<EditPostPage> {
         "details": details,
         "due_date": _selectedDate?.toUtc().toIso8601String(),
         "register_link": _registerLinkController.text.trim(),
-        "image_path": uploadedImagePath,
+        "image_path": finalImagePath,
         "tags": _isActivitySelected ? _selectedTags : [],
         "fields": !_isActivitySelected ? _selectedTypes : [],
         "post_type": _isActivitySelected ? "activity" : "team",
@@ -888,25 +1019,26 @@ class _EditPostPageState extends State<EditPostPage> {
 
       if (response.statusCode == 200) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Post Updated Successfully!')),
+          _showCustomSnackBar(
+            message: 'Post Updated Successfully!',
+            isError: false,
           );
           // Go back to the 'My Posts' page and signal a successful edit
           Navigator.pop(context, true);
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${response.statusCode} - ${response.body}'),
-            ),
+          _showCustomSnackBar(
+            message: 'Error: ${response.statusCode}',
+            isError: true,
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to connect to server: $e')),
+        _showCustomSnackBar(
+          message: 'Failed to connect to server: $e',
+          isError: true,
         );
       }
     }
@@ -954,6 +1086,56 @@ class _EditPostPageState extends State<EditPostPage> {
             style: TextStyle(height: 1.4, color: Colors.grey[800]),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showCustomSnackBar({
+    required String message,
+    required bool isError,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.elasticOut,
+          tween: Tween<double>(begin: 0.0, end: 1.0),
+          builder: (context, value, child) {
+            return Transform.translate(
+              offset: Offset(0, 30 * (1 - value)),
+              child: Opacity(
+                opacity: value.clamp(0.0, 1.0),
+                child: Row(
+                  children: [
+                    Icon(
+                      isError ? Icons.error_outline : Icons.check_circle_outline,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        backgroundColor:
+            isError ? const Color(0xFFE91E63) : const Color(0xFF4A8AF4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        duration: const Duration(seconds: 3),
+        elevation: 6,
       ),
     );
   }
