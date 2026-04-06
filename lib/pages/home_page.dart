@@ -5,6 +5,8 @@ import '../widgets/side_drawer.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../services/saved_service.dart';
 import 'competition_detail_page.dart';
+import 'report_page.dart';
+import 'search_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,12 +16,14 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Current selected category
+  // Sort state
+  String _sortBy = 'Newest';
+
+  // Category filter state
   List<String> _selectedCategories = ['All'];
   bool _isFilterExpanded = false;
 
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
+
 
   List<dynamic> _cards = [];
   bool _isLoading = true;
@@ -41,7 +45,7 @@ class _HomePageState extends State<HomePage> {
 
       if (!_selectedCategories.contains('All') &&
           _selectedCategories.isNotEmpty) {
-        // http package converts a List into multiple query parameters
+        // using 'tag' for home_page activity categories
         queryParams['tag'] = _selectedCategories;
       }
 
@@ -58,6 +62,18 @@ class _HomePageState extends State<HomePage> {
         if (mounted) {
           setState(() {
             _cards = json.decode(response.body);
+            // Sorting
+            if (_sortBy == 'Newest') {
+              _cards.sort(
+                (a, b) =>
+                    (b['created_at'] ?? '').compareTo(a['created_at'] ?? ''),
+              );
+            } else {
+              _cards.sort(
+                (a, b) =>
+                    (a['created_at'] ?? '').compareTo(b['created_at'] ?? ''),
+              );
+            }
             _isLoading = false;
           });
         }
@@ -81,7 +97,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -115,48 +130,63 @@ class _HomePageState extends State<HomePage> {
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(20.0, 45.0, 20.0, 10.0),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildHeader(),
-                        const SizedBox(height: 20),
-                        _buildSearchBar(),
-                        /* Restored Filter UI per user request */
+                        const SizedBox(height: 10),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: _buildHeader(),
+                        ),
+                        const SizedBox(height: 10),
+                        // Top Section: Greeting, Profile, Theme Toggle
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: _buildSearchBar(),
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Expandable Filter Section
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 400),
                           reverseDuration: const Duration(milliseconds: 300),
                           transitionBuilder:
                               (Widget child, Animation<double> animation) {
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: SizeTransition(
-                                    sizeFactor: animation,
-                                    axisAlignment: -1.0,
-                                    child: child,
-                                  ),
-                                );
-                              },
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SizeTransition(
+                                sizeFactor: animation,
+                                axisAlignment: -1.0,
+                                child: child,
+                              ),
+                            );
+                          },
                           child: _isFilterExpanded
                               ? Padding(
                                   key: const ValueKey('expanded_filters'),
-                                  padding: const EdgeInsets.only(top: 25.0),
-                                  child: _buildCategories(),
+                                  padding: const EdgeInsets.only(
+                                    left: 20.0,
+                                    right: 20.0,
+                                    bottom: 10.0,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [_buildCategories()],
+                                  ),
                                 )
                               : const SizedBox(
                                   key: ValueKey('collapsed_filters'),
+                                  width: double.infinity,
                                 ),
                         ),
-                        if (_searchQuery.isNotEmpty) ...[
-                          const SizedBox(height: 25),
-                          Text(
-                            "Search Results for \"$_searchQuery\"",
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2C3246),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 25),
+
+                        const SizedBox(height: 10),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: _buildSortOptions(),
+                        ),
+                        const SizedBox(height: 15),
+
                         if (_isLoading)
                           const Center(
                             child: Padding(
@@ -184,19 +214,20 @@ class _HomePageState extends State<HomePage> {
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 20.0),
                               child: _buildCompetitionCard(
+                                postId: card['id']?.toString() ?? '',
                                 title: card['name'] ?? 'No Title',
                                 posterName: "ICT Club",
                                 date: card['due_date'] != null
                                     ? DateTime.parse(
                                         card['due_date'].toString(),
-                                      ).toLocal().toString().substring(0, 16)
+                                      ).toLocal().toString().substring(0, 10)
                                     : "No Date",
                                 categories: categories,
                                 skillFields: skillFields,
                                 details:
                                     card['details'] ?? 'No details available.',
                                 link: card['register_link'] ?? '',
-                                contact: "No contact info",
+                                contact: card['contact'] ?? 'No contact info',
                                 imageUrl: card['image_path'],
                               ),
                             );
@@ -271,64 +302,48 @@ class _HomePageState extends State<HomePage> {
           child: Icon(
             Icons.filter_alt,
             size: 26,
-            color: _isFilterExpanded ? const Color(0xFF4285F4) : Colors.black,
+            color: _isFilterExpanded
+                ? const Color(0xFF4285F4)
+                : const Color(0xFF1E293B),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Container(
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFDE82), // Light amber/yellow
-              borderRadius: BorderRadius.circular(24),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    textInputAction: TextInputAction.search,
-                    onSubmitted: (value) {
-                      setState(() {
-                        _searchQuery = value.trim();
-                      });
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search For Find ...',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[500],
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      const SearchPage(searchType: 'activity'),
+                ),
+              );
+            },
+            child: Container(
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFDE82),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Search For Find ...',
+                      style: TextStyle(
+                        color: Colors.grey[600],
                         fontSize: 15,
                       ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.only(bottom: 5),
                     ),
                   ),
-                ),
-                if (_searchQuery.isNotEmpty)
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _searchController.clear();
-                        _searchQuery = '';
-                      });
-                    },
-                    child: const Icon(
-                      Icons.close,
-                      color: Colors.black54,
-                      size: 20,
-                    ),
+                  const Icon(
+                    Icons.search,
+                    color: Colors.black87,
+                    size: 26,
                   ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _searchQuery = _searchController.text.trim();
-                    });
-                  },
-                  child: const Icon(Icons.search, color: Colors.black87),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -380,8 +395,8 @@ class _HomePageState extends State<HomePage> {
         ),
         const SizedBox(height: 12),
         Wrap(
-          spacing: 8.0, // Gap between adjacent chips
-          runSpacing: 10.0, // Gap between lines
+          spacing: 8.0,
+          runSpacing: 10.0,
           children: categories.map((cat) {
             final isSelected = _selectedCategories.contains(cat);
             return GestureDetector(
@@ -390,16 +405,12 @@ class _HomePageState extends State<HomePage> {
                   if (cat == 'All') {
                     _selectedCategories = ['All'];
                   } else {
-                    // Remove 'All' if it was there
                     _selectedCategories.remove('All');
-
                     if (isSelected) {
                       _selectedCategories.remove(cat);
                     } else {
                       _selectedCategories.add(cat);
                     }
-
-                    // If everything removed, back to 'All'
                     if (_selectedCategories.isEmpty) {
                       _selectedCategories = ['All'];
                     }
@@ -421,7 +432,9 @@ class _HomePageState extends State<HomePage> {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF4285F4).withOpacity(0.3),
+                            color: const Color(
+                              0xFF4285F4,
+                            ).withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -432,8 +445,7 @@ class _HomePageState extends State<HomePage> {
                   cat,
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.grey[700],
-                    fontWeight:
-                        FontWeight.w600, // Keep weight fixed to avoid jump
+                    fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
                 ),
@@ -445,7 +457,106 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildSortOptions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Sort by",
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _sortBy = 'Newest';
+                  _fetchCards();
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: _sortBy == 'Newest'
+                      ? const Color(0xFFE91E63)
+                      : const Color(0xFFD3DEF5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      "Newest",
+                      style: TextStyle(
+                        color: _sortBy == 'Newest'
+                            ? Colors.white
+                            : Colors.grey[700],
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (_sortBy == 'Newest') ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.check, color: Colors.white, size: 14),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _sortBy = 'Oldest';
+                  _fetchCards();
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: _sortBy == 'Oldest'
+                      ? const Color(0xFFE91E63)
+                      : const Color(0xFFD3DEF5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      "Oldest",
+                      style: TextStyle(
+                        color: _sortBy == 'Oldest'
+                            ? Colors.white
+                            : Colors.grey[700],
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (_sortBy == 'Oldest') ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.check, color: Colors.white, size: 14),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildCompetitionCard({
+    required String postId,
     required String title,
     required String posterName,
     required String date,
@@ -459,7 +570,7 @@ class _HomePageState extends State<HomePage> {
     final isSaved = SavedService.isSaved(title);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -481,7 +592,7 @@ class _HomePageState extends State<HomePage> {
               children: [
                 imageUrl != null && imageUrl.isNotEmpty
                     ? Image.network(
-                        'http://localhost:3000$imageUrl',
+                        'http://localhost:3000${imageUrl.split(',').first}',
                         height: 140,
                         width: double.infinity,
                         fit: BoxFit.cover,
@@ -582,6 +693,33 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ),
+                  if (postId.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ReportPage(postId: postId, postTitle: title),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color:
+                              Colors.red[50], // Soft red background for warning
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.report_problem_outlined,
+                          color: Colors.red[400], // Distinct red color
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -612,7 +750,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
 
             // Categories and Skill Fields
             Padding(
@@ -630,7 +768,37 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+
+            // Details Preview (to match TeamPage height footprint)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.info_outline, size: 16, color: Color(0xFFE91E63)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          details.isNotEmpty ? details : "No details available.",
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[700],
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12), // Spacer below details
 
             // See More Bottom Banner (Synchronized with TeamPage)
             GestureDetector(
@@ -653,7 +821,7 @@ class _HomePageState extends State<HomePage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF9CBEEB), // Light blue banner theme
+                  color: Color(0xFFE91E63),
                 ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,

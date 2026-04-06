@@ -249,7 +249,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
     final filteredCards = _cards.where((card) {
       final postType = card['post_type'] as String? ?? 'activity';
       if (_isActivitySelected) {
-        return postType == 'activity';
+        return postType != 'team'; // This properly handles 'activity' and legacy defaults
       } else {
         return postType == 'team';
       }
@@ -271,26 +271,52 @@ class _MyPostsPageState extends State<MyPostsPage> {
       final List<String> skillFields = card['fields'] != null
           ? List<String>.from(card['fields'])
           : [];
+      
+      final String safeId = card['id'] ?? '';
+      final String safeTitle = card['name'] ?? 'No Title';
+      final String safeDate = card['due_date'] != null
+              ? DateTime.parse(card['due_date'].toString()).toLocal().toString().substring(0, 10)
+              : "No Date";
+      final String safeLink = card['register_link'] ?? '';
+      final String safeContact = card['contact'] ?? 'No contact info';
+      final String safeDetails = card['details'] ?? 'No details available.';
 
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 20.0),
-        child: _buildCompetitionCard(
-          id: card['id'] ?? '',
-          title: card['name'] ?? 'No Title',
-          posterName: "You (PluemICT033)",
-          date: card['due_date'] != null
-              ? DateTime.parse(
-                  card['due_date'].toString(),
-                ).toLocal().toString().substring(0, 16)
-              : "No Date",
-          categories: categories,
-          skillFields: skillFields,
-          details: card['details'] ?? 'No details available.',
-          link: card['register_link'] ?? '',
-          contact: "No contact info",
-          fullCardData: card,
-        ),
-      );
+      if (_isActivitySelected) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 20.0),
+          child: _buildCompetitionCard(
+            id: safeId,
+            title: safeTitle,
+            posterName: "You",
+            date: safeDate,
+            categories: categories,
+            skillFields: skillFields, // Unused in card, but kept for signature
+            details: safeDetails,
+            link: safeLink,
+            contact: safeContact,
+            fullCardData: card,
+          ),
+        );
+      } else {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 20.0),
+          child: _buildTeamCard(
+            id: safeId,
+            title: safeTitle,
+            posterName: "You",
+            postedDate: safeDate,
+            personCount: '${card['teammates_needed'] ?? "?"} People',
+            roleCategory: card['role_needed'] ?? 'Any Role',
+            tags: skillFields.isNotEmpty ? skillFields : categories,
+            roleDescription: safeDetails,
+            contact: safeContact,
+            imageUrl: card['image_path'],
+            link: safeLink,
+            requiredSkill: card['required_skill']?.toString() ?? 'Any Skill',
+            fullCardData: card,
+          ),
+        );
+      }
     }).toList();
   }
 
@@ -349,7 +375,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                       fullCardData['image_path'] != null &&
                               fullCardData['image_path'].toString().isNotEmpty
                           ? Image.network(
-                              'http://localhost:3000${fullCardData['image_path']}',
+                              'http://localhost:3000${fullCardData['image_path'].toString().split(',').first}',
                               height: 140,
                               width: double.infinity,
                               fit: BoxFit.cover,
@@ -517,7 +543,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                     ),
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
 
                   // Categories and Skill Fields
                   Padding(
@@ -535,24 +561,57 @@ class _MyPostsPageState extends State<MyPostsPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+
+                  // Details Preview (to match TeamPage height footprint)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.info_outline, size: 16, color: Color(0xFFE91E63)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                details.isNotEmpty ? details : "No details available.",
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[700],
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12), // Spacer below details
 
                   // Bottom Banner (Edit or Selection overlay)
                   if (!_isSelectionMode)
                     GestureDetector(
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
                                 EditPostPage(cardData: fullCardData),
                           ),
                         );
+                        if (result == true) {
+                          _fetchCards();
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: const BoxDecoration(
-                          color: Color(0xFF9CBEEB),
+                          color: Color(0xFFE91E63),
                         ),
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -576,7 +635,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
                         color: _selectedIds.contains(id)
-                            ? const Color(0xFFE91E63).withOpacity(0.8)
+                            ? const Color(0xFFE91E63)
                             : Colors.grey[300],
                       ),
                       child: Row(
@@ -605,6 +664,329 @@ class _MyPostsPageState extends State<MyPostsPage> {
                     ),
                 ],
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTeamCard({
+    required String id,
+    required String title,
+    required String posterName,
+    required String postedDate,
+    required String personCount,
+    required String roleCategory,
+    required List<String> tags,
+    required String roleDescription,
+    required String contact,
+    String? imageUrl,
+    required String link,
+    required String requiredSkill,
+    required Map<String, dynamic> fullCardData,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GestureDetector(
+        onTap: _isSelectionMode
+            ? () {
+                setState(() {
+                  if (_selectedIds.contains(id)) {
+                    _selectedIds.remove(id);
+                  } else {
+                    _selectedIds.add(id);
+                  }
+                });
+              }
+            : null,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: _isSelectionMode && _selectedIds.contains(id)
+                ? Border.all(color: const Color(0xFFE91E63), width: 2)
+                : null,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Image Preview
+              Stack(
+                children: [
+                  if (imageUrl != null && imageUrl.isNotEmpty)
+                    Image.network(
+                      'http://localhost:3000${imageUrl.split(',').first}',
+                      height: 140,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 140,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE8F0FE),
+                            image: DecorationImage(
+                              image: AssetImage('assets/competition_preview.png'),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                  else
+                    Container(
+                      height: 140,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE8F0FE),
+                        image: DecorationImage(
+                          image: AssetImage('assets/competition_preview.png'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  // Date Badge
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.calendar_today,
+                            size: 12,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            postedDate,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Active Post Badge
+                  Positioned(
+                    bottom: 12,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_circle, size: 14, color: Color(0xFF4CAF50)),
+                          SizedBox(width: 4),
+                          Text(
+                            "Active Post",
+                            style: TextStyle(
+                              color: Color(0xFF4CAF50),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2C3246),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 10,
+                      backgroundColor: Colors.purple[100],
+                      child: const Icon(
+                        Icons.person,
+                        size: 14,
+                        color: Colors.purple,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      posterName,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[700],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Tags
+              if (tags.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: tags.map((tag) => _buildTag(tag, const Color(0xFF4A8AF4))).toList(),
+                  ),
+                ),
+              if (tags.isNotEmpty) const SizedBox(height: 12),
+
+              // Role and Teammates with Icons
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.star, size: 16, color: Color(0xFFE91E63)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Required Skill: $requiredSkill",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[700],
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.group, size: 16, color: Color(0xFFE91E63)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Teammates Needed: $personCount",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[700],
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Bottom Banner (Edit or Selection overlay)
+              if (!_isSelectionMode)
+                GestureDetector(
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditPostPage(cardData: fullCardData),
+                      ),
+                    );
+                    if (result == true) {
+                      _fetchCards();
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE91E63),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.edit, color: Colors.white, size: 16),
+                        SizedBox(width: 8),
+                        Text(
+                          "Edit Post",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _selectedIds.contains(id)
+                        ? const Color(0xFFE91E63)
+                        : Colors.grey[300],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _selectedIds.contains(id)
+                            ? Icons.check_circle
+                            : Icons.circle_outlined,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _selectedIds.contains(id) ? "Selected" : "Select Post",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
@@ -763,8 +1145,9 @@ class _MyPostsPageState extends State<MyPostsPage> {
 
       if (response.statusCode == 200) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Posts deleted successfully!')),
+          _showCustomSnackBar(
+            message: 'Posts deleted successfully!',
+            isError: false,
           );
           _selectedIds.clear();
           _isSelectionMode = false;
@@ -773,18 +1156,18 @@ class _MyPostsPageState extends State<MyPostsPage> {
       } else {
         if (mounted) {
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to delete posts: ${response.statusCode}'),
-            ),
+          _showCustomSnackBar(
+            message: 'Failed to delete posts: ${response.statusCode}',
+            isError: true,
           );
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error connecting to server: $e')),
+        _showCustomSnackBar(
+          message: 'Error connecting to server: $e',
+          isError: true,
         );
       }
     }
@@ -804,6 +1187,56 @@ class _MyPostsPageState extends State<MyPostsPage> {
           fontSize: 10,
           fontWeight: FontWeight.bold,
         ),
+      ),
+    );
+  }
+
+  void _showCustomSnackBar({
+    required String message,
+    required bool isError,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.elasticOut,
+          tween: Tween<double>(begin: 0.0, end: 1.0),
+          builder: (context, value, child) {
+            return Transform.translate(
+              offset: Offset(0, 30 * (1 - value)),
+              child: Opacity(
+                opacity: value.clamp(0.0, 1.0),
+                child: Row(
+                  children: [
+                    Icon(
+                      isError ? Icons.error_outline : Icons.check_circle_outline,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        backgroundColor:
+            isError ? const Color(0xFFE91E63) : const Color(0xFF4A8AF4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        duration: const Duration(seconds: 3),
+        elevation: 6,
       ),
     );
   }

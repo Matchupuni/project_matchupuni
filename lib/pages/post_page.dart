@@ -66,12 +66,33 @@ class _PostPageState extends State<PostPage> {
     super.dispose();
   }
 
+  bool _isPickingImages = false;
+
   Future<void> _pickImages() async {
-    final List<XFile> images = await _picker.pickMultiImage();
-    if (images.isNotEmpty) {
-      setState(() {
-        _selectedImages.addAll(images.map((image) => File(image.path)));
-      });
+    if (_isPickingImages) return;
+    setState(() {
+      _isPickingImages = true;
+    });
+
+    try {
+      final List<XFile> images = await _picker.pickMultiImage();
+      if (images.isNotEmpty) {
+        setState(() {
+          for (var image in images) {
+            if (_selectedImages.length < 5) {
+              _selectedImages.add(File(image.path));
+            }
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Error picking images: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPickingImages = false;
+        });
+      }
     }
   }
 
@@ -127,30 +148,24 @@ class _PostPageState extends State<PostPage> {
                             color: Color(0xFF333333),
                           ),
                         ),
-                        // [ADDED] EN|TH toggle + history icon on the right
-                        Row(
-                          children: [
-
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const MyPostsPage(),
-                                  ),
-                                );
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 5,
-                                    ),
-                                  ],
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MyPostsPage(),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 5,
                                 ),
                                 child: const Icon(
                                   Icons.history,
@@ -166,10 +181,8 @@ class _PostPageState extends State<PostPage> {
                     const SizedBox(height: 16),
                     _buildToggleButtons(),
                     const SizedBox(height: 16),
-                    if (_isActivitySelected) ...[
-                      _buildPhotoUploadBox(),
-                      const SizedBox(height: 20),
-                    ],
+                    _buildPhotoUploadBox(),
+                    const SizedBox(height: 20),
                     if (_isActivitySelected) ...[
                       _buildLabelRow(
                         "Name:",
@@ -217,6 +230,21 @@ class _PostPageState extends State<PostPage> {
                         _withRequiredIndicator(_buildTagsRow()),
                       ),
                     ] else ...[
+                      // --- General Info ---
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "General Info",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF333333),
+                            ),
+                          ),
+                        ),
+                      ),
                       _buildLabelRow(
                         "Name:",
                         _withRequiredIndicator(
@@ -227,22 +255,49 @@ class _PostPageState extends State<PostPage> {
                         ),
                       ),
                       _buildLabelRow(
-                        "Role Needed:",
+                        "Details:",
                         _withRequiredIndicator(
                           _buildTextField(
                             "Type here....",
-                            controller: _roleNeededController,
+                            controller: _detailsController,
+                            maxLines: 4,
                           ),
                         ),
                       ),
                       _buildLabelRow(
-                        "Teammates Needed:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _teammatesNeededController,
-                            isNumber: true,
+                        "Type:",
+                        _withRequiredIndicator(_buildTypeRow()),
+                      ),
+                      _buildLabelRow(
+                        "Due Date:",
+                        _withRequiredIndicator(_buildDueDateField()),
+                      ),
+
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16.0),
+                        child: Divider(thickness: 1, color: Color(0xFFE0E0E0)),
+                      ),
+
+                      // --- Recruitment ---
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "Recruitment",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF333333),
+                            ),
                           ),
+                        ),
+                      ),
+                      _buildLabelRow(
+                        "Role Needed:",
+                        _buildTextField(
+                          "Type here....",
+                          controller: _roleNeededController,
                         ),
                       ),
                       _buildLabelRow(
@@ -255,8 +310,12 @@ class _PostPageState extends State<PostPage> {
                         ),
                       ),
                       _buildLabelRow(
-                        "Type:",
-                        _withRequiredIndicator(_buildTypeRow()),
+                        "Teammates Needed:",
+                        _withRequiredIndicator(
+                          _buildNumberCounter(
+                            controller: _teammatesNeededController,
+                          ),
+                        ),
                       ),
                       _buildLabelRow(
                         "Contact:",
@@ -264,6 +323,15 @@ class _PostPageState extends State<PostPage> {
                           _buildTextField(
                             "Type here....",
                             controller: _contactController,
+                          ),
+                        ),
+                      ),
+                      _buildLabelRow(
+                        "Register:",
+                        _withRequiredIndicator(
+                          _buildTextField(
+                            "Type here....",
+                            controller: _registerLinkController,
                           ),
                         ),
                       ),
@@ -380,7 +448,7 @@ class _PostPageState extends State<PostPage> {
           border: Border.all(color: const Color(0xFFD3DEF5), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -438,7 +506,7 @@ class _PostPageState extends State<PostPage> {
     return GridView.builder(
       padding: const EdgeInsets.all(8),
       scrollDirection: Axis.horizontal,
-      itemCount: _selectedImages.length + 1,
+      itemCount: _selectedImages.length < 5 ? _selectedImages.length + 1 : 5,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 1,
         mainAxisSpacing: 8,
@@ -554,6 +622,63 @@ class _PostPageState extends State<PostPage> {
             vertical: 10,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildNumberCounter({required TextEditingController controller}) {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.remove, color: Colors.black54),
+            onPressed: () {
+              int currentValue = int.tryParse(controller.text) ?? 1;
+              if (currentValue > 1) {
+                setState(() {
+                  controller.text = (currentValue - 1).toString();
+                });
+              }
+            },
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: "1",
+                hintStyle: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
+                ),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add, color: Colors.black54),
+            onPressed: () {
+              int currentValue = int.tryParse(controller.text) ?? 0;
+              if (currentValue == 0 && controller.text.isEmpty) {
+                currentValue = 1;
+              }
+              setState(() {
+                controller.text = (currentValue + 1).toString();
+              });
+            },
+          ),
+        ],
       ),
     );
   }
@@ -748,14 +873,83 @@ class _PostPageState extends State<PostPage> {
 
   Future<void> _submitPost() async {
     final String name = _nameController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a Name for the post')),
+
+    // 1. Photos Check
+    if (_selectedImages.isEmpty) {
+      _showCustomSnackBar(
+        message: 'Please upload at least one photo',
+        isError: true,
       );
       return;
     }
 
+    // 2. Name Check
+    if (name.isEmpty) {
+      _showCustomSnackBar(
+        message: 'Please enter a Name for the post',
+        isError: true,
+      );
+      return;
+    }
+
+    // 3. Details Check
     String details = _detailsController.text.trim();
+    if (details.isEmpty) {
+      _showCustomSnackBar(
+        message: 'Please enter Details for the post',
+        isError: true,
+      );
+      return;
+    }
+
+    // 4. Mode Specific Checks
+    if (_isActivitySelected) {
+      // Activity Mode Requirements
+      if (_selectedDate == null) {
+        _showCustomSnackBar(message: 'Please select a Due Date', isError: true);
+        return;
+      }
+      if (_registerLinkController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter a Register link', isError: true);
+        return;
+      }
+      if (_contactController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter Contact info', isError: true);
+        return;
+      }
+      if (_selectedTags.isEmpty) {
+        _showCustomSnackBar(message: 'Please select at least one Tag', isError: true);
+        return;
+      }
+    } else {
+      // Find Teammates Mode Requirements
+      if (_selectedTypes.isEmpty) {
+        _showCustomSnackBar(message: 'Please select a Type', isError: true);
+        return;
+      }
+      if (_selectedDate == null) {
+        _showCustomSnackBar(message: 'Please select a Due Date', isError: true);
+        return;
+      }
+      if (_requiredSkillController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter Required Skills', isError: true);
+        return;
+      }
+      if (_teammatesNeededController.text.trim().isEmpty || 
+          _teammatesNeededController.text.trim() == "0") {
+        _showCustomSnackBar(message: 'Please specify Teammates Needed', isError: true);
+        return;
+      }
+      if (_contactController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter Contact info', isError: true);
+        return;
+      }
+      if (_registerLinkController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter a Register link', isError: true);
+        return;
+      }
+    }
+
     String? uploadedImagePath;
 
     try {
@@ -764,20 +958,22 @@ class _PostPageState extends State<PostPage> {
           'POST',
           Uri.parse('http://localhost:3000/upload'),
         );
-        uploadRequest.files.add(
-          await http.MultipartFile.fromPath('file', _selectedImages.first.path),
-        );
+        for (var image in _selectedImages) {
+          uploadRequest.files.add(
+            await http.MultipartFile.fromPath('files', image.path),
+          );
+        }
 
         var uploadResponse = await uploadRequest.send();
         if (uploadResponse.statusCode == 200) {
           var responseData = await http.Response.fromStream(uploadResponse);
           var jsonMap = json.decode(responseData.body);
-          uploadedImagePath =
-              jsonMap['path']; // Gets something like /public/uploads/...
+          uploadedImagePath = (jsonMap['paths'] as List).join(',');
         } else {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to upload image')),
+            _showCustomSnackBar(
+              message: 'Failed to upload image: ${uploadResponse.statusCode}',
+              isError: true,
             );
           }
           return;
@@ -802,7 +998,7 @@ class _PostPageState extends State<PostPage> {
         "required_skill": _isActivitySelected
             ? null
             : _requiredSkillController.text.trim(),
-        "contact": _isActivitySelected ? null : _contactController.text.trim(),
+        "contact": _contactController.text.trim(),
       };
 
       final response = await http.post(
@@ -813,8 +1009,9 @@ class _PostPageState extends State<PostPage> {
 
       if (response.statusCode == 201) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Post Created Successfully!')),
+          _showCustomSnackBar(
+            message: 'Post Created Successfully!',
+            isError: false,
           );
           // Navigate to Activity or clear form
           setState(() {
@@ -838,17 +1035,17 @@ class _PostPageState extends State<PostPage> {
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${response.statusCode} - ${response.body}'),
-            ),
+          _showCustomSnackBar(
+            message: 'Error: ${response.statusCode}',
+            isError: true,
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to connect to server: $e')),
+        _showCustomSnackBar(
+          message: 'Failed to connect to server: $e',
+          isError: true,
         );
       }
     }
@@ -896,6 +1093,56 @@ class _PostPageState extends State<PostPage> {
             style: TextStyle(height: 1.4, color: Colors.grey[800]),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showCustomSnackBar({
+    required String message,
+    required bool isError,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.elasticOut,
+          tween: Tween<double>(begin: 0.0, end: 1.0),
+          builder: (context, value, child) {
+            return Transform.translate(
+              offset: Offset(0, 30 * (1 - value)),
+              child: Opacity(
+                opacity: value.clamp(0.0, 1.0),
+                child: Row(
+                  children: [
+                    Icon(
+                      isError ? Icons.error_outline : Icons.check_circle_outline,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        backgroundColor:
+            isError ? const Color(0xFFE91E63) : const Color(0xFF4A8AF4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        duration: const Duration(seconds: 3),
+        elevation: 6,
       ),
     );
   }

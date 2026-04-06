@@ -6,7 +6,6 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../widgets/custom_bottom_nav.dart';
-import 'my_posts_page.dart';
 
 class EditPostPage extends StatefulWidget {
   final Map<String, dynamic> cardData;
@@ -28,6 +27,7 @@ class _EditPostPageState extends State<EditPostPage> {
   ];
   final List<String> _selectedTags = [];
   final List<File> _selectedImages = [];
+  List<String> _existingNetworkImages = [];
   final ImagePicker _picker = ImagePicker();
   DateTime? _selectedDate;
   bool _isActivitySelected = true;
@@ -70,13 +70,24 @@ class _EditPostPageState extends State<EditPostPage> {
   void initState() {
     super.initState();
     _nameController.text = widget.cardData['name'] ?? '';
+    _detailsController.text = widget.cardData['details'] ?? '';
     _registerLinkController.text = widget.cardData['register_link'] ?? '';
+    _contactController.text = widget.cardData['contact'] ?? '';
 
     if (widget.cardData['tags'] != null) {
       _selectedTags.addAll(List<String>.from(widget.cardData['tags']));
     }
     if (widget.cardData['fields'] != null) {
       _selectedTypes.addAll(List<String>.from(widget.cardData['fields']));
+    }
+
+    final String? imgPathStr = widget.cardData['image_path']?.toString();
+    if (imgPathStr != null && imgPathStr.isNotEmpty) {
+      _existingNetworkImages = imgPathStr
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
     }
 
     if (widget.cardData['due_date'] != null) {
@@ -93,20 +104,36 @@ class _EditPostPageState extends State<EditPostPage> {
       _teammatesNeededController.text =
           widget.cardData['teammates_needed']?.toString() ?? '';
       _requiredSkillController.text = widget.cardData['required_skill'] ?? '';
-      _contactController.text = widget.cardData['contact'] ?? '';
-      _detailsController.text = widget.cardData['details'] ?? '';
-    } else {
-      _detailsController.text = widget.cardData['details'] ?? '';
-      _contactController.text = widget.cardData['contact'] ?? '';
     }
   }
 
+  bool _isPickingImages = false;
+
   Future<void> _pickImages() async {
-    final List<XFile> images = await _picker.pickMultiImage();
-    if (images.isNotEmpty) {
-      setState(() {
-        _selectedImages.addAll(images.map((image) => File(image.path)));
-      });
+    if (_isPickingImages) return;
+    setState(() {
+      _isPickingImages = true;
+    });
+
+    try {
+      final List<XFile> images = await _picker.pickMultiImage();
+      if (images.isNotEmpty) {
+        setState(() {
+          for (var image in images) {
+            if (_existingNetworkImages.length + _selectedImages.length < 5) {
+              _selectedImages.add(File(image.path));
+            }
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Error picking images: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPickingImages = false;
+        });
+      }
     }
   }
 
@@ -170,7 +197,7 @@ class _EditPostPageState extends State<EditPostPage> {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withValues(alpha: 0.05),
                                   blurRadius: 5,
                                 ),
                               ],
@@ -198,10 +225,8 @@ class _EditPostPageState extends State<EditPostPage> {
                     const SizedBox(height: 16),
                     _buildToggleButtons(),
                     const SizedBox(height: 16),
-                    if (_isActivitySelected) ...[
-                      _buildPhotoUploadBox(),
-                      const SizedBox(height: 20),
-                    ],
+                    _buildPhotoUploadBox(),
+                    const SizedBox(height: 20),
                     if (_isActivitySelected) ...[
                       _buildLabelRow(
                         "Name:",
@@ -249,6 +274,21 @@ class _EditPostPageState extends State<EditPostPage> {
                         _withRequiredIndicator(_buildTagsRow()),
                       ),
                     ] else ...[
+                      // --- General Info ---
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "General Info",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF333333),
+                            ),
+                          ),
+                        ),
+                      ),
                       _buildLabelRow(
                         "Name:",
                         _withRequiredIndicator(
@@ -259,22 +299,49 @@ class _EditPostPageState extends State<EditPostPage> {
                         ),
                       ),
                       _buildLabelRow(
-                        "Role Needed:",
+                        "Details:",
                         _withRequiredIndicator(
                           _buildTextField(
                             "Type here....",
-                            controller: _roleNeededController,
+                            controller: _detailsController,
+                            maxLines: 4,
                           ),
                         ),
                       ),
                       _buildLabelRow(
-                        "Teammates Needed:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _teammatesNeededController,
-                            isNumber: true,
+                        "Type:",
+                        _withRequiredIndicator(_buildTypeRow()),
+                      ),
+                      _buildLabelRow(
+                        "Due Date:",
+                        _withRequiredIndicator(_buildDueDateField()),
+                      ),
+
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16.0),
+                        child: Divider(thickness: 1, color: Color(0xFFE0E0E0)),
+                      ),
+
+                      // --- Recruitment ---
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "Recruitment",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF333333),
+                            ),
                           ),
+                        ),
+                      ),
+                      _buildLabelRow(
+                        "Role Needed:",
+                        _buildTextField(
+                          "Type here....",
+                          controller: _roleNeededController,
                         ),
                       ),
                       _buildLabelRow(
@@ -287,8 +354,12 @@ class _EditPostPageState extends State<EditPostPage> {
                         ),
                       ),
                       _buildLabelRow(
-                        "Type:",
-                        _withRequiredIndicator(_buildTypeRow()),
+                        "Teammates Needed:",
+                        _withRequiredIndicator(
+                          _buildNumberCounter(
+                            controller: _teammatesNeededController,
+                          ),
+                        ),
                       ),
                       _buildLabelRow(
                         "Contact:",
@@ -296,6 +367,15 @@ class _EditPostPageState extends State<EditPostPage> {
                           _buildTextField(
                             "Type here....",
                             controller: _contactController,
+                          ),
+                        ),
+                      ),
+                      _buildLabelRow(
+                        "Register:",
+                        _withRequiredIndicator(
+                          _buildTextField(
+                            "Type here....",
+                            controller: _registerLinkController,
                           ),
                         ),
                       ),
@@ -319,90 +399,29 @@ class _EditPostPageState extends State<EditPostPage> {
   Widget _buildToggleButtons() {
     return Container(
       height: 38,
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFFD3DEF5),
+        color: const Color(0xFF4A8AF4),
         borderRadius: BorderRadius.circular(22),
       ),
-      child: Stack(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _isActivitySelected = true),
-                  child: Container(
-                    color: Colors.transparent,
-                    child: Center(
-                      child: Text(
-                        "Activity",
-                        style: TextStyle(
-                          color: _isActivitySelected
-                              ? Colors.white
-                              : Colors.grey[600],
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _isActivitySelected = false),
-                  child: Container(
-                    color: Colors.transparent,
-                    child: Center(
-                      child: Text(
-                        "Find Teammates",
-                        style: TextStyle(
-                          color: !_isActivitySelected
-                              ? Colors.white
-                              : Colors.grey[600],
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+      child: Center(
+        child: Text(
+          _isActivitySelected ? "Activity" : "Find Teammates",
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
           ),
-          AnimatedAlign(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            alignment: _isActivitySelected
-                ? Alignment.centerLeft
-                : Alignment.centerRight,
-            child: FractionallySizedBox(
-              widthFactor: 0.5,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4A8AF4),
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Center(
-                  child: Text(
-                    _isActivitySelected ? "Activity" : "Find Teammates",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildPhotoUploadBox() {
+    final bool hasImages = _existingNetworkImages.isNotEmpty || _selectedImages.isNotEmpty;
+
     return GestureDetector(
-      onTap: _pickImages,
+      onTap: !hasImages ? _pickImages : null,
       child: Container(
         height: 150,
         width: double.infinity,
@@ -412,13 +431,13 @@ class _EditPostPageState extends State<EditPostPage> {
           border: Border.all(color: const Color(0xFFD3DEF5), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: _selectedImages.isEmpty
+        child: !hasImages
             ? _buildPlaceholderContent()
             : _buildImageGrid(),
       ),
@@ -467,17 +486,19 @@ class _EditPostPageState extends State<EditPostPage> {
   }
 
   Widget _buildImageGrid() {
+    final int totalImages = _existingNetworkImages.length + _selectedImages.length;
+
     return GridView.builder(
       padding: const EdgeInsets.all(8),
       scrollDirection: Axis.horizontal,
-      itemCount: _selectedImages.length + 1,
+      itemCount: totalImages < 5 ? totalImages + 1 : 5,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 1,
         mainAxisSpacing: 8,
         childAspectRatio: 1,
       ),
       itemBuilder: (context, index) {
-        if (index == _selectedImages.length) {
+        if (index == totalImages) {
           return GestureDetector(
             onTap: _pickImages,
             child: Container(
@@ -493,16 +514,32 @@ class _EditPostPageState extends State<EditPostPage> {
             ),
           );
         }
+
+        final bool isNetwork = index < _existingNetworkImages.length;
+
         return Stack(
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.file(
-                _selectedImages[index],
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-              ),
+              child: isNetwork
+                  ? Image.network(
+                      'http://localhost:3000${_existingNetworkImages[index]}',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: const Color(0xFFE8F0FE),
+                          child: const Icon(Icons.broken_image, color: Colors.grey),
+                        );
+                      },
+                    )
+                  : Image.file(
+                      _selectedImages[index - _existingNetworkImages.length],
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
             ),
             Positioned(
               top: 4,
@@ -510,7 +547,11 @@ class _EditPostPageState extends State<EditPostPage> {
               child: GestureDetector(
                 onTap: () {
                   setState(() {
-                    _selectedImages.removeAt(index);
+                    if (isNetwork) {
+                      _existingNetworkImages.removeAt(index);
+                    } else {
+                      _selectedImages.removeAt(index - _existingNetworkImages.length);
+                    }
                   });
                 },
                 child: Container(
@@ -586,6 +627,63 @@ class _EditPostPageState extends State<EditPostPage> {
             vertical: 10,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildNumberCounter({required TextEditingController controller}) {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.remove, color: Colors.black54),
+            onPressed: () {
+              int currentValue = int.tryParse(controller.text) ?? 1;
+              if (currentValue > 1) {
+                setState(() {
+                  controller.text = (currentValue - 1).toString();
+                });
+              }
+            },
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: "1",
+                hintStyle: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
+                ),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add, color: Colors.black54),
+            onPressed: () {
+              int currentValue = int.tryParse(controller.text) ?? 0;
+              if (currentValue == 0 && controller.text.isEmpty) {
+                currentValue = 1;
+              }
+              setState(() {
+                controller.text = (currentValue + 1).toString();
+              });
+            },
+          ),
+        ],
       ),
     );
   }
@@ -780,15 +878,83 @@ class _EditPostPageState extends State<EditPostPage> {
 
   Future<void> _submitPost() async {
     final String name = _nameController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a Name for the post')),
+
+    // 1. Photos Check (At least one image required - either existing or new)
+    if (_existingNetworkImages.isEmpty && _selectedImages.isEmpty) {
+      _showCustomSnackBar(
+        message: 'Please provide at least one photo',
+        isError: true,
       );
       return;
     }
 
+    // 2. Name Check
+    if (name.isEmpty) {
+      _showCustomSnackBar(
+        message: 'Please enter a Name for the post',
+        isError: true,
+      );
+      return;
+    }
+
+    // 3. Details Check
     String details = _detailsController.text.trim();
-    String? uploadedImagePath = widget.cardData['image_path'];
+    if (details.isEmpty) {
+      _showCustomSnackBar(
+        message: 'Please enter Details for the post',
+        isError: true,
+      );
+      return;
+    }
+
+    // 4. Mode Specific Checks
+    if (_isActivitySelected) {
+      // Activity Mode Requirements
+      if (_selectedDate == null) {
+        _showCustomSnackBar(message: 'Please select a Due Date', isError: true);
+        return;
+      }
+      if (_registerLinkController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter a Register link', isError: true);
+        return;
+      }
+      if (_contactController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter Contact info', isError: true);
+        return;
+      }
+      if (_selectedTags.isEmpty) {
+        _showCustomSnackBar(message: 'Please select at least one Tag', isError: true);
+        return;
+      }
+    } else {
+      // Find Teammates Mode Requirements
+      if (_selectedTypes.isEmpty) {
+        _showCustomSnackBar(message: 'Please select a Type', isError: true);
+        return;
+      }
+      if (_selectedDate == null) {
+        _showCustomSnackBar(message: 'Please select a Due Date', isError: true);
+        return;
+      }
+      if (_requiredSkillController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter Required Skills', isError: true);
+        return;
+      }
+      if (_teammatesNeededController.text.trim().isEmpty || 
+          _teammatesNeededController.text.trim() == "0") {
+        _showCustomSnackBar(message: 'Please specify Teammates Needed', isError: true);
+        return;
+      }
+      if (_contactController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter Contact info', isError: true);
+        return;
+      }
+      if (_registerLinkController.text.trim().isEmpty) {
+        _showCustomSnackBar(message: 'Please enter a Register link', isError: true);
+        return;
+      }
+    }
+    String finalImagePath = _existingNetworkImages.join(',');
 
     try {
       if (_selectedImages.isNotEmpty) {
@@ -796,20 +962,28 @@ class _EditPostPageState extends State<EditPostPage> {
           'POST',
           Uri.parse('http://localhost:3000/upload'),
         );
-        uploadRequest.files.add(
-          await http.MultipartFile.fromPath('file', _selectedImages.first.path),
-        );
+        for (var image in _selectedImages) {
+          uploadRequest.files.add(
+            await http.MultipartFile.fromPath('files', image.path),
+          );
+        }
 
         var uploadResponse = await uploadRequest.send();
         if (uploadResponse.statusCode == 200) {
           var responseData = await http.Response.fromStream(uploadResponse);
           var jsonMap = json.decode(responseData.body);
-          uploadedImagePath =
-              jsonMap['path']; // Gets something like /public/uploads/...
+          final String newUploadedPaths = (jsonMap['paths'] as List).join(',');
+          
+          if (finalImagePath.isNotEmpty) {
+            finalImagePath = '$finalImagePath,$newUploadedPaths';
+          } else {
+            finalImagePath = newUploadedPaths;
+          }
         } else {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to upload image')),
+            _showCustomSnackBar(
+              message: 'Failed to upload image: ${uploadResponse.statusCode}',
+              isError: true,
             );
           }
           return;
@@ -821,7 +995,7 @@ class _EditPostPageState extends State<EditPostPage> {
         "details": details,
         "due_date": _selectedDate?.toUtc().toIso8601String(),
         "register_link": _registerLinkController.text.trim(),
-        "image_path": uploadedImagePath,
+        "image_path": finalImagePath,
         "tags": _isActivitySelected ? _selectedTags : [],
         "fields": !_isActivitySelected ? _selectedTypes : [],
         "post_type": _isActivitySelected ? "activity" : "team",
@@ -834,7 +1008,7 @@ class _EditPostPageState extends State<EditPostPage> {
         "required_skill": _isActivitySelected
             ? null
             : _requiredSkillController.text.trim(),
-        "contact": _isActivitySelected ? null : _contactController.text.trim(),
+        "contact": _contactController.text.trim(),
       };
 
       final response = await http.put(
@@ -845,29 +1019,26 @@ class _EditPostPageState extends State<EditPostPage> {
 
       if (response.statusCode == 200) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Post Updated Successfully!')),
+          _showCustomSnackBar(
+            message: 'Post Updated Successfully!',
+            isError: false,
           );
-          // Navigate to MyPostsPage
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const MyPostsPage()),
-            (Route<dynamic> route) => route.settings.name == '/',
-          );
+          // Go back to the 'My Posts' page and signal a successful edit
+          Navigator.pop(context, true);
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${response.statusCode} - ${response.body}'),
-            ),
+          _showCustomSnackBar(
+            message: 'Error: ${response.statusCode}',
+            isError: true,
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to connect to server: $e')),
+        _showCustomSnackBar(
+          message: 'Failed to connect to server: $e',
+          isError: true,
         );
       }
     }
@@ -915,6 +1086,56 @@ class _EditPostPageState extends State<EditPostPage> {
             style: TextStyle(height: 1.4, color: Colors.grey[800]),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showCustomSnackBar({
+    required String message,
+    required bool isError,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.elasticOut,
+          tween: Tween<double>(begin: 0.0, end: 1.0),
+          builder: (context, value, child) {
+            return Transform.translate(
+              offset: Offset(0, 30 * (1 - value)),
+              child: Opacity(
+                opacity: value.clamp(0.0, 1.0),
+                child: Row(
+                  children: [
+                    Icon(
+                      isError ? Icons.error_outline : Icons.check_circle_outline,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        backgroundColor:
+            isError ? const Color(0xFFE91E63) : const Color(0xFF4A8AF4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        duration: const Duration(seconds: 3),
+        elevation: 6,
       ),
     );
   }
