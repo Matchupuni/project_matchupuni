@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/saved_service.dart';
 import '../pages/competition_detail_page.dart';
+import '../pages/login_page.dart';
+import '../pages/welcome_page.dart';
+import '../pages/edit_profile_page.dart';
 
 class SideDrawer extends StatelessWidget {
   const SideDrawer({
@@ -73,29 +76,58 @@ class SideDrawer extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
         child: Column(
           children: [
-            Align(
-              alignment: Alignment.topLeft,
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.close,
-                    size: 20,
-                    color: Colors.black87,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 20,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
-              ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const EditProfilePage()),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.edit,
+                      size: 20,
+                      color: Color(0xFFE91E63),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 10),
             // Avatar Placeholder
@@ -344,7 +376,13 @@ class SideDrawer extends StatelessWidget {
           elevation: 0,
         ),
         onPressed: () {
-          // Logout functionality here
+          // Safely capture the navigator before popping the drawer
+          final navigator = Navigator.of(context);
+          navigator.pop();
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const WelcomePage()),
+            (route) => false,
+          );
         },
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

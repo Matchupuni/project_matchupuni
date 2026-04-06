@@ -113,10 +113,7 @@ class _HomePageState extends State<HomePage> {
                 child: SafeArea(
                   bottom: false,
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0,
-                      vertical: 10.0,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(20.0, 45.0, 20.0, 10.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -244,11 +241,7 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.only(top: 10),
           child: Row(
             children: [
-              Text(
-                "EN|TH",
-                style: TextStyle(color: Colors.grey[500], fontSize: 13),
-              ),
-              const SizedBox(width: 10),
+
               Builder(
                 builder: (context) {
                   return GestureDetector(

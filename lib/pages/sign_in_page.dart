@@ -1,44 +1,69 @@
 import 'package:flutter/material.dart';
-import 'welcome_page.dart';
-import 'home_page.dart';
-import 'sign_in_page.dart';
+import 'login_page.dart';
 
-class LoginScreen extends StatefulWidget {
+class SignInPage extends StatefulWidget {
+  const SignInPage({super.key});
+
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignInPage> createState() => _SignInPageState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignInPageState extends State<SignInPage> {
   static const Color _pink = Color(0xFFE91263);
   static const Color _darkText = Color(0xFF1E232C);
   static const Color _bg = Color(0xFFF7F9FC);
 
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmController = TextEditingController();
 
   @override
   void dispose() {
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
-  void _handleLogin() {
-    if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
+  void _handleRegister() {
+    final String user = _usernameController.text.trim();
+    final String email = _emailController.text.trim();
+    final String pass = _passwordController.text.trim();
+    final String confirm = _confirmController.text.trim();
+
+    if (user.isEmpty || email.isEmpty || pass.isEmpty || confirm.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please enter both email and password"),
+          content: Text("Please fill in all fields"),
           backgroundColor: Colors.redAccent,
         ),
       );
       return;
     }
 
-    // Validation passed, navigate to Home
-    Navigator.pushAndRemoveUntil(
+    if (pass != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Passwords do not match!"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    // Validation passed -> Go to Login Page
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Registration Successful! Please login."),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const HomePage()),
-      (route) => false,
+      MaterialPageRoute(builder: (_) => LoginScreen()),
     );
   }
 
@@ -50,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Stack(
           children: [
             SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 20.0),
+              padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -63,64 +88,50 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-                      onPressed: () => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => const WelcomePage()),
-                      ),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
 
-                  const SizedBox(height: 35),
+                  const SizedBox(height: 30),
 
                   // Header
                   RichText(
                     text: const TextSpan(
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize: 26,
                         fontWeight: FontWeight.bold,
                         color: _darkText,
-                        height: 1.25,
-                        letterSpacing: -0.5,
+                        height: 1.3,
                       ),
                       children: [
                         TextSpan(
-                          text: " Welcome back!",
+                          text: 'Hello! ',
                           style: TextStyle(color: _pink),
                         ),
-                        TextSpan(text: "\nGlad to see you, Again!"),
+                        TextSpan(text: 'Register to get\nstarted'),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 35),
+                  const SizedBox(height: 30),
 
-                  // Email field
-                  _buildField("Enter your email", _emailController),
-                  const SizedBox(height: 12),
+                  // Input fields
+                  _buildField('Username', _usernameController),
+                  const SizedBox(height: 14),
+                  _buildField('Email', _emailController),
+                  const SizedBox(height: 14),
+                  _buildField('Password', _passwordController, isPassword: true),
+                  const SizedBox(height: 14),
+                  _buildField('Confirm password', _confirmController, isPassword: true),
 
-                  // Password field
-                  _buildField("Enter your password", _passwordController, isPassword: true),
+                  const SizedBox(height: 28),
 
-                  // Forgot Password link
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {},
-                      child: Text(
-                        "Forgot Password?",
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 15),
-
-                  // Login button
+                  // Register button
                   SizedBox(
                     width: double.infinity,
                     height: 54,
                     child: ElevatedButton(
-                      onPressed: _handleLogin,
+                      onPressed: _handleRegister, // Validation handler
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _pink,
                         foregroundColor: Colors.white,
@@ -130,30 +141,31 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       child: const Text(
-                        "Login",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        'Register',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 75),
+                  const SizedBox(height: 28),
 
-                  // Register Now link
+                  // Login Now link
                   Center(
                     child: GestureDetector(
                       onTap: () {
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (_) => const SignInPage()),
+                          MaterialPageRoute(builder: (_) => LoginScreen()),
                         );
                       },
                       child: RichText(
                         text: const TextSpan(
-                          style: TextStyle(color: _darkText, fontSize: 15),
+                          style: TextStyle(color: _darkText, fontSize: 14),
                           children: [
-                            TextSpan(text: "Don't have an account? "),
+                            TextSpan(text: 'Already have an account? '),
                             TextSpan(
-                              text: "Register Now",
+                              text: 'Login Now',
                               style: TextStyle(
                                 color: _pink,
                                 fontWeight: FontWeight.bold,
@@ -175,23 +187,20 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Reusable input field
+  // Reusable text field
   Widget _buildField(String hint, TextEditingController controller, {bool isPassword = false}) {
     return TextField(
       controller: controller,
       obscureText: isPassword,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade500),
+        hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
         filled: true,
         fillColor: Colors.white,
-        suffixIcon: isPassword
-            ? const Icon(Icons.visibility_outlined, color: Colors.grey)
-            : null,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: Colors.grey.shade200),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),

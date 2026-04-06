@@ -111,17 +111,14 @@ class _PostPageState extends State<PostPage> {
             child: SafeArea(
               bottom: false,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20.0,
-                  vertical: 16.0,
-                ),
+                padding: const EdgeInsets.fromLTRB(20.0, 45.0, 20.0, 16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const SizedBox(width: 40), // Spacer for centering
+                        const SizedBox(width: 40), // Left spacer for centering
                         const Text(
                           "Create Post",
                           style: TextStyle(
@@ -130,33 +127,39 @@ class _PostPageState extends State<PostPage> {
                             color: Color(0xFF333333),
                           ),
                         ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const MyPostsPage(),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 5,
+                        // [ADDED] EN|TH toggle + history icon on the right
+                        Row(
+                          children: [
+
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const MyPostsPage(),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 5,
+                                    ),
+                                  ],
                                 ),
-                              ],
+                                child: const Icon(
+                                  Icons.history,
+                                  color: Color(0xFFE91E63),
+                                  size: 24,
+                                ),
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.history,
-                              color: Color(0xFFE91E63),
-                              size: 24,
-                            ),
-                          ),
+                          ],
                         ),
                       ],
                     ),
