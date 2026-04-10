@@ -7,9 +7,13 @@ const getPosts = async (req, res) => {
     let query = `
       SELECT 
         p.*, 
+        u.id AS author_id,
+        u.full_name AS author_name,
+        u.profile_img AS author_profile_image,
         COALESCE(array_remove(array_agg(DISTINCT t.tag_name), NULL), '{}') AS tags,
         COALESCE(array_remove(array_agg(DISTINCT f.field_name), NULL), '{}') AS fields
       FROM posts p
+      LEFT JOIN users u ON p.author_id = u.id
       LEFT JOIN post_tags pt ON p.id = pt.post_id
       LEFT JOIN tags t ON pt.tag_id = t.id
       LEFT JOIN post_fields pf ON p.id = pf.post_id
@@ -58,7 +62,7 @@ const getPosts = async (req, res) => {
       query += ` WHERE ` + whereClauses.join(' AND ');
     }
 
-    query += ' GROUP BY p.id ORDER BY p.created_at DESC';
+    query += ' GROUP BY p.id, u.id, u.full_name, u.profile_img ORDER BY p.created_at DESC';
 
     const result = await pool.query(query, queryParams);
     res.json(result.rows);
@@ -79,12 +83,13 @@ const createPost = async (req, res) => {
     } = req.body;
     
     const id = generateCuid2(); 
+    const author_id = req.user.id;
 
     const result = await client.query(
-      `INSERT INTO posts (id, name, details, due_date, register_link, image_path, post_type, role_needed, teammates_needed, required_skill, contact) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+      `INSERT INTO posts (id, name, details, due_date, register_link, image_path, post_type, role_needed, teammates_needed, required_skill, contact, author_id) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
        RETURNING *`,
-      [id, name, details, due_date, register_link, image_path, post_type || 'activity', role_needed, teammates_needed || null, required_skill, contact]
+      [id, name, details, due_date, register_link, image_path, post_type || 'activity', role_needed, teammates_needed || null, required_skill, contact, author_id]
     );
     
     const insertedPost = result.rows[0];
@@ -132,10 +137,23 @@ const createPost = async (req, res) => {
 
 const updatePost = async (req, res) => {
   const { id } = req.params;
+  const author_id = req.user.id;
   console.log(`Receiving PUT /posts/${id} payload:`, req.body);
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    
+    // Verify ownership
+    const postCheck = await client.query('SELECT author_id FROM posts WHERE id = $1', [id]);
+    if (postCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Post not found' });
+    }
+    if (postCheck.rows[0].author_id !== author_id) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Unauthorized to update this post' });
+    }
+    
     const { 
       name, details, due_date, register_link, image_path, tags, fields,
       post_type, role_needed, teammates_needed, required_skill, contact
@@ -202,6 +220,7 @@ const updatePost = async (req, res) => {
 
 const deleteBulkPosts = async (req, res) => {
   const { ids } = req.body;
+  const author_id = req.user.id;
   console.log("Receiving DELETE /posts/bulk payload:", req.body);
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ error: 'No IDs provided' });
@@ -210,6 +229,15 @@ const deleteBulkPosts = async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    
+    // Verify ownership
+    const postCheck = await client.query('SELECT author_id FROM posts WHERE id = ANY($1)', [ids]);
+    for (const row of postCheck.rows) {
+      if (row.author_id !== author_id) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: 'Unauthorized to delete one or more of these posts' });
+      }
+    }
     
     // Delete relationships first
     await client.query('DELETE FROM post_tags WHERE post_id = ANY($1)', [ids]);
