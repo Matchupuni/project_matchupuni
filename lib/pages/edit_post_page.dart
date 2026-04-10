@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/custom_bottom_nav.dart';
+import 'package:project_matchupuni/config/api_config.dart';
 
 class EditPostPage extends StatefulWidget {
   final Map<String, dynamic> cardData;
@@ -398,7 +400,7 @@ class _EditPostPageState extends State<EditPostPage> {
 
   Widget _buildToggleButtons() {
     return Container(
-      height: 38,
+      height: 40,
       width: double.infinity,
       decoration: BoxDecoration(
         color: const Color(0xFF4A8AF4),
@@ -418,7 +420,8 @@ class _EditPostPageState extends State<EditPostPage> {
   }
 
   Widget _buildPhotoUploadBox() {
-    final bool hasImages = _existingNetworkImages.isNotEmpty || _selectedImages.isNotEmpty;
+    final bool hasImages =
+        _existingNetworkImages.isNotEmpty || _selectedImages.isNotEmpty;
 
     return GestureDetector(
       onTap: !hasImages ? _pickImages : null,
@@ -437,9 +440,7 @@ class _EditPostPageState extends State<EditPostPage> {
             ),
           ],
         ),
-        child: !hasImages
-            ? _buildPlaceholderContent()
-            : _buildImageGrid(),
+        child: !hasImages ? _buildPlaceholderContent() : _buildImageGrid(),
       ),
     );
   }
@@ -486,7 +487,8 @@ class _EditPostPageState extends State<EditPostPage> {
   }
 
   Widget _buildImageGrid() {
-    final int totalImages = _existingNetworkImages.length + _selectedImages.length;
+    final int totalImages =
+        _existingNetworkImages.length + _selectedImages.length;
 
     return GridView.builder(
       padding: const EdgeInsets.all(8),
@@ -523,14 +525,17 @@ class _EditPostPageState extends State<EditPostPage> {
               borderRadius: BorderRadius.circular(8),
               child: isNetwork
                   ? Image.network(
-                      'http://localhost:3000${_existingNetworkImages[index]}',
+                      '${ApiConfig.baseUrl}${_existingNetworkImages[index]}',
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: double.infinity,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
                           color: const Color(0xFFE8F0FE),
-                          child: const Icon(Icons.broken_image, color: Colors.grey),
+                          child: const Icon(
+                            Icons.broken_image,
+                            color: Colors.grey,
+                          ),
                         );
                       },
                     )
@@ -550,7 +555,9 @@ class _EditPostPageState extends State<EditPostPage> {
                     if (isNetwork) {
                       _existingNetworkImages.removeAt(index);
                     } else {
-                      _selectedImages.removeAt(index - _existingNetworkImages.length);
+                      _selectedImages.removeAt(
+                        index - _existingNetworkImages.length,
+                      );
                     }
                   });
                 },
@@ -915,15 +922,24 @@ class _EditPostPageState extends State<EditPostPage> {
         return;
       }
       if (_registerLinkController.text.trim().isEmpty) {
-        _showCustomSnackBar(message: 'Please enter a Register link', isError: true);
+        _showCustomSnackBar(
+          message: 'Please enter a Register link',
+          isError: true,
+        );
         return;
       }
       if (_contactController.text.trim().isEmpty) {
-        _showCustomSnackBar(message: 'Please enter Contact info', isError: true);
+        _showCustomSnackBar(
+          message: 'Please enter Contact info',
+          isError: true,
+        );
         return;
       }
       if (_selectedTags.isEmpty) {
-        _showCustomSnackBar(message: 'Please select at least one Tag', isError: true);
+        _showCustomSnackBar(
+          message: 'Please select at least one Tag',
+          isError: true,
+        );
         return;
       }
     } else {
@@ -937,20 +953,32 @@ class _EditPostPageState extends State<EditPostPage> {
         return;
       }
       if (_requiredSkillController.text.trim().isEmpty) {
-        _showCustomSnackBar(message: 'Please enter Required Skills', isError: true);
+        _showCustomSnackBar(
+          message: 'Please enter Required Skills',
+          isError: true,
+        );
         return;
       }
-      if (_teammatesNeededController.text.trim().isEmpty || 
+      if (_teammatesNeededController.text.trim().isEmpty ||
           _teammatesNeededController.text.trim() == "0") {
-        _showCustomSnackBar(message: 'Please specify Teammates Needed', isError: true);
+        _showCustomSnackBar(
+          message: 'Please specify Teammates Needed',
+          isError: true,
+        );
         return;
       }
       if (_contactController.text.trim().isEmpty) {
-        _showCustomSnackBar(message: 'Please enter Contact info', isError: true);
+        _showCustomSnackBar(
+          message: 'Please enter Contact info',
+          isError: true,
+        );
         return;
       }
       if (_registerLinkController.text.trim().isEmpty) {
-        _showCustomSnackBar(message: 'Please enter a Register link', isError: true);
+        _showCustomSnackBar(
+          message: 'Please enter a Register link',
+          isError: true,
+        );
         return;
       }
     }
@@ -960,7 +988,7 @@ class _EditPostPageState extends State<EditPostPage> {
       if (_selectedImages.isNotEmpty) {
         var uploadRequest = http.MultipartRequest(
           'POST',
-          Uri.parse('http://localhost:3000/upload'),
+          Uri.parse('${ApiConfig.baseUrl}/upload'),
         );
         for (var image in _selectedImages) {
           uploadRequest.files.add(
@@ -973,7 +1001,7 @@ class _EditPostPageState extends State<EditPostPage> {
           var responseData = await http.Response.fromStream(uploadResponse);
           var jsonMap = json.decode(responseData.body);
           final String newUploadedPaths = (jsonMap['paths'] as List).join(',');
-          
+
           if (finalImagePath.isNotEmpty) {
             finalImagePath = '$finalImagePath,$newUploadedPaths';
           } else {
@@ -1011,9 +1039,15 @@ class _EditPostPageState extends State<EditPostPage> {
         "contact": _contactController.text.trim(),
       };
 
+      final prefs = await SharedPreferences.getInstance();
+      var token = prefs.getString('auth_token') ?? '';
+
       final response = await http.put(
-        Uri.parse('http://localhost:3000/posts/${widget.cardData['id']}'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('${ApiConfig.baseUrl}/posts/${widget.cardData['id']}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: json.encode(payload),
       );
 
@@ -1090,53 +1124,81 @@ class _EditPostPageState extends State<EditPostPage> {
     );
   }
 
-  void _showCustomSnackBar({
-    required String message,
-    required bool isError,
-  }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: TweenAnimationBuilder<double>(
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.elasticOut,
-          tween: Tween<double>(begin: 0.0, end: 1.0),
-          builder: (context, value, child) {
-            return Transform.translate(
-              offset: Offset(0, 30 * (1 - value)),
-              child: Opacity(
-                opacity: value.clamp(0.0, 1.0),
-                child: Row(
-                  children: [
-                    Icon(
-                      isError ? Icons.error_outline : Icons.check_circle_outline,
-                      color: Colors.white,
-                      size: 20,
+  void _showCustomSnackBar({required String message, required bool isError}) {
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 20,
+        left: 20,
+        right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.elasticOut,
+            tween: Tween<double>(begin: 0.0, end: 1.0),
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(0, -30 * (1 - value)), // Slide down from the top
+                child: Opacity(
+                  opacity: value.clamp(0.0, 1.0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        message,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                    decoration: BoxDecoration(
+                      color: isError
+                          ? const Color(0xFFE91E63)
+                          : const Color(0xFF4A8AF4),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                    child: Row(
+                      children: [
+                        Icon(
+                          isError
+                              ? Icons.error_outline
+                              : Icons.check_circle_outline,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            message,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
-        backgroundColor:
-            isError ? const Color(0xFFE91E63) : const Color(0xFF4A8AF4),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        duration: const Duration(seconds: 3),
-        elevation: 6,
       ),
     );
+
+    overlay.insert(overlayEntry);
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (overlayEntry.mounted) {
+        overlayEntry.remove();
+      }
+    });
   }
 }

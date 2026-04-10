@@ -1,14 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/saved_service.dart';
 import '../pages/competition_detail_page.dart';
-import '../pages/login_page.dart';
 import '../pages/welcome_page.dart';
 import '../pages/edit_profile_page.dart';
+import 'package:project_matchupuni/config/api_config.dart';
 
-class SideDrawer extends StatelessWidget {
-  const SideDrawer({
-    super.key,
-  }); // Removed savedPosts property, now using service
+class SideDrawer extends StatefulWidget {
+  const SideDrawer({super.key});
+
+  @override
+  State<SideDrawer> createState() => _SideDrawerState();
+}
+
+class _SideDrawerState extends State<SideDrawer> {
+  String _userFullName = "";
+  String _userEmail = "";
+  String? _userId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userFullName = prefs.getString('user_full_name') ?? 'Guest User';
+      _userEmail = prefs.getString('user_email') ?? 'No Email';
+      _userId = prefs.getString('user_id');
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -102,10 +125,12 @@ class SideDrawer extends StatelessWidget {
                 ),
                 GestureDetector(
                   onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const EditProfilePage()),
+                    final navigator = Navigator.of(context);
+                    navigator.pop(); // Close the drawer
+                    navigator.push(
+                      MaterialPageRoute(
+                        builder: (context) => const EditProfilePage(),
+                      ),
                     );
                   },
                   child: Container(
@@ -154,9 +179,12 @@ class SideDrawer extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Text(
-                "PluemICT033",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              child: Text(
+                _userFullName.isNotEmpty ? _userFullName : "Guest User",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -166,9 +194,9 @@ class SideDrawer extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Text(
-                "pluem@gmail.com",
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+              child: Text(
+                _userEmail.isNotEmpty ? _userEmail : "No Email",
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
               ),
             ),
             const SizedBox(height: 10),
@@ -233,16 +261,22 @@ class SideDrawer extends StatelessWidget {
   }
 
   Widget _buildSavedCard(BuildContext context, {required SavedItem item}) {
+    final bool hasImage = item.imageUrl != null && item.imageUrl!.isNotEmpty;
+    final String imagePath = hasImage ? item.imageUrl!.split(',').first : '';
+    final String fullImageUrl = imagePath.startsWith('http')
+        ? imagePath
+        : '${ApiConfig.baseUrl}$imagePath';
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 10,
-            offset: const Offset(0, 5),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -250,13 +284,24 @@ class SideDrawer extends StatelessWidget {
         children: [
           // Left block acting as image placeholder
           Container(
-            width: 60,
-            height: 60,
+            width: 70,
+            height: 70,
             decoration: BoxDecoration(
               color: item.iconColor,
-              borderRadius: BorderRadius.circular(15),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.dashboard, color: Colors.white30, size: 24),
+            clipBehavior: Clip.hardEdge,
+            child: hasImage
+                ? Image.network(
+                    fullImageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.dashboard,
+                      color: Colors.white30,
+                      size: 28,
+                    ),
+                  )
+                : const Icon(Icons.dashboard, color: Colors.white30, size: 28),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -268,29 +313,35 @@ class SideDrawer extends StatelessWidget {
                   item.title,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 15,
+                    color: Color(0xFF2C3246),
                   ),
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 6),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.calendar_today,
-                      size: 12,
-                      color: Colors.grey,
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.calendar_today,
+                        size: 14,
+                        color: Colors.grey[700],
+                      ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         item.date,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 11,
+                        style: TextStyle(
+                          color: Colors.grey[800],
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                        overflow: TextOverflow.visible,
                       ),
                     ),
                   ],
@@ -298,30 +349,32 @@ class SideDrawer extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onTap: () => SavedService.toggleSave(item),
+                onTap: () => SavedService.toggleSave(item, _userId),
                 child: Container(
-                  padding: const EdgeInsets.all(6),
+                  width: 36, // Standardized size
+                  height: 36,
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: Colors.pink[50], // Light pink background
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.bookmark,
-                    color: Color(0xFFE91E63),
-                    size: 16,
+                    color: Color(0xFFE91E63), // Primary Pink
+                    size: 20,
                   ),
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 12),
               GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
+                  final navigator = Navigator.of(context);
+                  navigator.pop(); // Close the drawer
+                  navigator.push(
                     MaterialPageRoute(
                       builder: (context) => CompetitionDetailPage(
                         title: item.title,
@@ -331,6 +384,9 @@ class SideDrawer extends StatelessWidget {
                         link: item.link,
                         contact: item.contact,
                         imageUrl: item.imageUrl,
+                        posterName: item.posterName,
+                        posterImageUrl: item.posterImageUrl,
+                        posterId: item.posterId,
                       ),
                     ),
                   );
@@ -338,20 +394,26 @@ class SideDrawer extends StatelessWidget {
                 child: Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(4),
+                      width: 36, // Standardized size matching Bookmark
+                      height: 36,
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
+                        color: Colors.blue[50], // Light blue background
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.arrow_forward,
-                        size: 14,
-                        color: Colors.grey,
+                        Icons.visibility, // Better icon for "See more"
+                        size: 20,
+                        color: Color(0xFF2196F3), // Primary Blue
                       ),
                     ),
+                    const SizedBox(height: 4),
                     const Text(
                       "See more",
-                      style: TextStyle(fontSize: 9, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF2196F3),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),

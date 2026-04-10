@@ -1,12 +1,16 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'chat_list_page.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/side_drawer.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../services/saved_service.dart';
+import '../services/chat_api_service.dart';
 import 'competition_detail_page.dart';
 import 'report_page.dart';
 import 'search_page.dart';
+import 'package:project_matchupuni/config/api_config.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,15 +27,42 @@ class _HomePageState extends State<HomePage> {
   List<String> _selectedCategories = ['All'];
   bool _isFilterExpanded = false;
 
-
-
   List<dynamic> _cards = [];
   bool _isLoading = true;
+  String _userFullName = "";
+  String? _userProfileImg;
+  String? _userId;
+  int _unreadChatCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _loadUser();
     _fetchCards();
+    _fetchUnreadChats();
+  }
+
+  Future<void> _fetchUnreadChats() async {
+    try {
+      final unread = await ChatApiService.checkUnreadCount();
+      if (mounted) {
+        setState(() {
+          _unreadChatCount = unread;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userId = prefs.getString('user_id');
+      _userFullName = prefs.getString('user_full_name') ?? 'Guest';
+      _userProfileImg = prefs.getString('user_profile_img');
+    });
+    if (_userId != null) {
+      await SavedService.loadFavorites(_userId!);
+    }
   }
 
   Future<void> _fetchCards() async {
@@ -49,13 +80,9 @@ class _HomePageState extends State<HomePage> {
         queryParams['tag'] = _selectedCategories;
       }
 
-      final uri = Uri(
-        scheme: 'http',
-        host: 'localhost',
-        port: 3000,
-        path: '/posts',
-        queryParameters: queryParams.isNotEmpty ? queryParams : null,
-      );
+      final uri = Uri.parse(
+        '${ApiConfig.baseUrl}/posts',
+      ).replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri);
       if (response.statusCode == 200) {
@@ -128,7 +155,6 @@ class _HomePageState extends State<HomePage> {
                 child: SafeArea(
                   bottom: false,
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20.0, 45.0, 20.0, 10.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -151,28 +177,25 @@ class _HomePageState extends State<HomePage> {
                           reverseDuration: const Duration(milliseconds: 300),
                           transitionBuilder:
                               (Widget child, Animation<double> animation) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SizeTransition(
-                                sizeFactor: animation,
-                                axisAlignment: -1.0,
-                                child: child,
-                              ),
-                            );
-                          },
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SizeTransition(
+                                    sizeFactor: animation,
+                                    axisAlignment: -1.0,
+                                    child: child,
+                                  ),
+                                );
+                              },
                           child: _isFilterExpanded
                               ? Padding(
                                   key: const ValueKey('expanded_filters'),
                                   padding: const EdgeInsets.only(
                                     left: 20.0,
                                     right: 20.0,
+                                    top: 10.0,
                                     bottom: 10.0,
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [_buildCategories()],
-                                  ),
+                                  child: _buildCategories(),
                                 )
                               : const SizedBox(
                                   key: ValueKey('collapsed_filters'),
@@ -202,36 +225,52 @@ class _HomePageState extends State<HomePage> {
                             ),
                           )
                         else
-                          ..._cards.map((card) {
-                            final List<String> categories = card['tags'] != null
-                                ? List<String>.from(card['tags'])
-                                : [];
-                            final List<String> skillFields =
-                                card['fields'] != null
-                                ? List<String>.from(card['fields'])
-                                : [];
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Column(
+                              children: _cards.map((card) {
+                                final List<String> categories =
+                                    card['tags'] != null
+                                    ? List<String>.from(card['tags'])
+                                    : [];
+                                final List<String> skillFields =
+                                    card['fields'] != null
+                                    ? List<String>.from(card['fields'])
+                                    : [];
 
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 20.0),
-                              child: _buildCompetitionCard(
-                                postId: card['id']?.toString() ?? '',
-                                title: card['name'] ?? 'No Title',
-                                posterName: "ICT Club",
-                                date: card['due_date'] != null
-                                    ? DateTime.parse(
-                                        card['due_date'].toString(),
-                                      ).toLocal().toString().substring(0, 10)
-                                    : "No Date",
-                                categories: categories,
-                                skillFields: skillFields,
-                                details:
-                                    card['details'] ?? 'No details available.',
-                                link: card['register_link'] ?? '',
-                                contact: card['contact'] ?? 'No contact info',
-                                imageUrl: card['image_path'],
-                              ),
-                            );
-                          }),
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 20.0),
+                                  child: _buildCompetitionCard(
+                                    postId: card['id']?.toString() ?? '',
+                                    title: card['name'] ?? 'No Title',
+                                    posterName:
+                                        card['author_name'] ?? _userFullName,
+                                    posterImageUrl:
+                                        card['author_profile_image'] ??
+                                        _userProfileImg,
+                                    posterId: card['author_id']?.toString(),
+                                    date: card['due_date'] != null
+                                        ? DateTime.parse(
+                                            card['due_date'].toString(),
+                                          ).toLocal().toString().substring(
+                                            0,
+                                            10,
+                                          )
+                                        : "No Date",
+                                    categories: categories,
+                                    skillFields: skillFields,
+                                    details:
+                                        card['details'] ??
+                                        'No details available.',
+                                    link: card['register_link'] ?? '',
+                                    contact:
+                                        card['contact'] ?? 'No contact info',
+                                    imageUrl: card['image_path'],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
                         const SizedBox(height: 20),
                       ],
                     ),
@@ -263,7 +302,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             Text(
-              "PluemICT033",
+              _userFullName,
               style: TextStyle(color: Colors.grey[800], fontSize: 16),
             ),
           ],
@@ -272,7 +311,49 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.only(top: 10),
           child: Row(
             children: [
-
+              Stack(
+                children: [
+                  IconButton(
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ChatListPage(),
+                        ),
+                      );
+                      // Refresh unread count when returning
+                      _fetchUnreadChats();
+                    },
+                    icon: const Icon(Icons.notifications_none, size: 26),
+                  ),
+                  if (_unreadChatCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '$_unreadChatCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 8),
               Builder(
                 builder: (context) {
                   return GestureDetector(
@@ -331,17 +412,10 @@ class _HomePageState extends State<HomePage> {
                   Expanded(
                     child: Text(
                       'Search For Find ...',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 15,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 15),
                     ),
                   ),
-                  const Icon(
-                    Icons.search,
-                    color: Colors.black87,
-                    size: 26,
-                  ),
+                  const Icon(Icons.search, color: Colors.black87, size: 26),
                 ],
               ),
             ),
@@ -559,6 +633,7 @@ class _HomePageState extends State<HomePage> {
     required String postId,
     required String title,
     required String posterName,
+    String? posterImageUrl,
     required String date,
     required List<String> categories,
     required List<String> skillFields,
@@ -566,286 +641,291 @@ class _HomePageState extends State<HomePage> {
     required String link,
     required String contact,
     String? imageUrl,
+    String? posterId,
   }) {
-    final isSaved = SavedService.isSaved(title);
+    final isSaved = SavedService.isSaved(postId);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.hardEdge,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Image Preview at the top with Date Badge
-            Stack(
-              children: [
-                imageUrl != null && imageUrl.isNotEmpty
-                    ? Image.network(
-                        'http://localhost:3000${imageUrl.split(',').first}',
-                        height: 140,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Image.asset(
-                            'assets/competition_preview.png',
-                            height: 140,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          );
-                        },
-                      )
-                    : Image.asset(
-                        'assets/competition_preview.png',
-                        height: 140,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.calendar_today,
-                          size: 12,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          date,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2C3246),
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        SavedService.toggleSave(
-                          SavedItem(
-                            title: title,
-                            date: date,
-                            tags: [...categories, ...skillFields],
-                            details: details,
-                            link: link,
-                            contact: contact,
-                            isTeam: false,
-                            iconColor: const Color(0xFF4A8AF4),
-                            imageUrl: imageUrl,
-                          ),
-                        );
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        isSaved ? Icons.bookmark : Icons.bookmark_border,
-                        color: const Color(0xFFE91E63),
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                  if (postId.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                ReportPage(postId: postId, postTitle: title),
-                          ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Image Preview at the top with Date Badge
+          Stack(
+            children: [
+              imageUrl != null && imageUrl.isNotEmpty
+                  ? Image.network(
+                      '${ApiConfig.baseUrl}${imageUrl.split(',').first}',
+                      height: 140,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          'assets/competition_preview.png',
+                          height: 140,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
                         );
                       },
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color:
-                              Colors.red[50], // Soft red background for warning
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.report_problem_outlined,
-                          color: Colors.red[400], // Distinct red color
-                          size: 20,
-                        ),
-                      ),
+                    )
+                  : Image.asset(
+                      'assets/competition_preview.png',
+                      height: 140,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
                     ),
-                  ],
-                ],
-              ),
-            ),
-            // Poster Avatar and Name (Moved below title and styled to match TeamPage)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 10,
-                    backgroundColor: Colors.purple[100],
-                    child: const Icon(
-                      Icons.person,
-                      size: 14,
-                      color: Colors.purple,
-                    ),
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    posterName,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[700],
-                    ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Categories and Skill Fields
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  ...categories.map(
-                    (tag) => _buildTag(tag, const Color(0xFF4A8AF4)),
-                  ), // Blue for Categories
-                  ...skillFields.map(
-                    (field) => _buildTag(field, const Color(0xFF4CAF50)),
-                  ), // Green for Skill Fields
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Details Preview (to match TeamPage height footprint)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.info_outline, size: 16, color: Color(0xFFE91E63)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          details.isNotEmpty ? details : "No details available.",
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[700],
-                            fontSize: 13,
-                          ),
+                      const Icon(
+                        Icons.calendar_today,
+                        size: 12,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        date,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12), // Spacer below details
-
-            // See More Bottom Banner (Synchronized with TeamPage)
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CompetitionDetailPage(
-                      title: title,
-                      date: date,
-                      tags: [...categories, ...skillFields],
-                      details: details,
-                      link: link,
-                      contact: contact,
-                      imageUrl: imageUrl,
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2C3246),
                     ),
                   ),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE91E63),
                 ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "See more",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      SavedService.toggleSave(
+                        SavedItem(
+                          id: postId,
+                          title: title,
+                          date: date,
+                          tags: [...categories, ...skillFields],
+                          details: details,
+                          link: link,
+                          contact: contact,
+                          isTeam: false,
+                          iconColor: const Color(0xFF4A8AF4),
+                          imageUrl: imageUrl,
+                          posterName: posterName,
+                          posterImageUrl: posterImageUrl,
+                          posterId: posterId,
+                        ),
+                        _userId,
+                      );
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isSaved ? Icons.bookmark : Icons.bookmark_border,
+                      color: const Color(0xFFE91E63),
+                      size: 20,
+                    ),
+                  ),
+                ),
+                if (postId.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ReportPage(postId: postId, postTitle: title),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color:
+                            Colors.red[50], // Soft red background for warning
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.report_problem_outlined,
+                        color: Colors.red[400], // Distinct red color
+                        size: 20,
                       ),
                     ),
-                    SizedBox(width: 8),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      color: Colors.white,
-                      size: 14,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // Poster Avatar and Name (Moved below title and styled to match TeamPage)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 10,
+                  backgroundColor: Colors.purple[100],
+                  backgroundImage:
+                      (posterImageUrl != null && posterImageUrl.isNotEmpty)
+                      ? NetworkImage('${ApiConfig.baseUrl}$posterImageUrl')
+                      : null,
+                  child: (posterImageUrl == null || posterImageUrl.isEmpty)
+                      ? const Icon(Icons.person, size: 14, color: Colors.purple)
+                      : null,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  posterName,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Categories and Skill Fields
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                ...categories.map(
+                  (tag) => _buildTag(tag, const Color(0xFF4A8AF4)),
+                ), // Blue for Categories
+                ...skillFields.map(
+                  (field) => _buildTag(field, const Color(0xFF4CAF50)),
+                ), // Green for Skill Fields
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Details Preview (to match TeamPage height footprint)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: Color(0xFFE91E63),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        details.isNotEmpty ? details : "No details available.",
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[700],
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
                   ],
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12), // Spacer below details
+          // See More Bottom Banner (Synchronized with TeamPage)
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CompetitionDetailPage(
+                    title: title,
+                    date: date,
+                    tags: [...categories, ...skillFields],
+                    details: details,
+                    link: link,
+                    contact: contact,
+                    imageUrl: imageUrl,
+                    posterName: posterName,
+                    posterImageUrl: posterImageUrl,
+                    posterId: posterId,
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: const BoxDecoration(color: Color(0xFFE91E63)),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "See more",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

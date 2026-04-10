@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'login_page.dart';
+import 'package:project_matchupuni/config/api_config.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -18,6 +23,8 @@ class _SignInPageState extends State<SignInPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
 
+  bool _isLoading = false;
+
   @override
   void dispose() {
     _usernameController.dispose();
@@ -27,7 +34,7 @@ class _SignInPageState extends State<SignInPage> {
     super.dispose();
   }
 
-  void _handleRegister() {
+  Future<void> _handleRegister() async {
     final String user = _usernameController.text.trim();
     final String email = _emailController.text.trim();
     final String pass = _passwordController.text.trim();
@@ -53,18 +60,62 @@ class _SignInPageState extends State<SignInPage> {
       return;
     }
 
-    // Validation passed -> Go to Login Page
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Registration Successful! Please login."),
-        backgroundColor: Colors.green,
-      ),
-    );
+    setState(() {
+      _isLoading = true;
+    });
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => LoginScreen()),
-    );
+    try {
+      String baseUrl = ApiConfig.baseUrl;
+      if (!kIsWeb && Platform.isAndroid) {
+        
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'full_name': user, 'email': email, 'password': pass}),
+      );
+
+      if (response.statusCode == 201) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Registration Successful! Please login."),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => LoginScreen()),
+          );
+        }
+      } else {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['error'] ?? "Registration failed"),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Network error: $e"),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -75,7 +126,10 @@ class _SignInPageState extends State<SignInPage> {
         child: Stack(
           children: [
             SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 28.0,
+                vertical: 16.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -120,9 +174,17 @@ class _SignInPageState extends State<SignInPage> {
                   const SizedBox(height: 14),
                   _buildField('Email', _emailController),
                   const SizedBox(height: 14),
-                  _buildField('Password', _passwordController, isPassword: true),
+                  _buildField(
+                    'Password',
+                    _passwordController,
+                    isPassword: true,
+                  ),
                   const SizedBox(height: 14),
-                  _buildField('Confirm password', _confirmController, isPassword: true),
+                  _buildField(
+                    'Confirm password',
+                    _confirmController,
+                    isPassword: true,
+                  ),
 
                   const SizedBox(height: 28),
 
@@ -131,7 +193,9 @@ class _SignInPageState extends State<SignInPage> {
                     width: double.infinity,
                     height: 54,
                     child: ElevatedButton(
-                      onPressed: _handleRegister, // Validation handler
+                      onPressed: _isLoading
+                          ? null
+                          : _handleRegister, // Validation handler
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _pink,
                         foregroundColor: Colors.white,
@@ -140,11 +204,15 @@ class _SignInPageState extends State<SignInPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text(
-                        'Register',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              'Register',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
                   ),
 
@@ -188,7 +256,11 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   // Reusable text field
-  Widget _buildField(String hint, TextEditingController controller, {bool isPassword = false}) {
+  Widget _buildField(
+    String hint,
+    TextEditingController controller, {
+    bool isPassword = false,
+  }) {
     return TextField(
       controller: controller,
       obscureText: isPassword,
@@ -197,7 +269,10 @@ class _SignInPageState extends State<SignInPage> {
         hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 18,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.grey.shade200),

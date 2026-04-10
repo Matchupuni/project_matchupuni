@@ -1,12 +1,16 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'chat_list_page.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/chat_api_service.dart';
 import '../widgets/side_drawer.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../services/saved_service.dart';
 import 'competition_detail_page.dart';
 import 'report_page.dart';
 import 'search_page.dart';
+import 'package:project_matchupuni/config/api_config.dart';
 
 class TeamPage extends StatefulWidget {
   const TeamPage({super.key});
@@ -23,15 +27,39 @@ class _TeamPageState extends State<TeamPage> {
   List<String> _selectedCategories = ['All'];
   bool _isFilterExpanded = false;
 
-
-
   List<dynamic> _teamPosts = [];
   bool _isLoading = true;
+  String _userFullName = "";
+  String? _userId;
+  int _unreadChatCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _loadUser();
     _fetchTeamPosts();
+    _fetchUnreadChats();
+  }
+
+  Future<void> _fetchUnreadChats() async {
+    try {
+      final unreadCount = await ChatApiService.checkUnreadCount();
+      if (mounted) {
+        setState(() {
+          _unreadChatCount = unreadCount;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching unread chats: \$e");
+    }
+  }
+
+  Future<void> _loadUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userId = prefs.getString('user_id');
+      _userFullName = prefs.getString('user_full_name') ?? 'Guest';
+    });
   }
 
   Future<void> _fetchTeamPosts() async {
@@ -48,13 +76,9 @@ class _TeamPageState extends State<TeamPage> {
         queryParams['field'] = _selectedCategories;
       }
 
-      final uri = Uri(
-        scheme: 'http',
-        host: 'localhost',
-        port: 3000,
-        path: '/posts',
-        queryParameters: queryParams.isNotEmpty ? queryParams : null,
-      );
+      final uri = Uri.parse(
+        '${ApiConfig.baseUrl}/posts',
+      ).replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri);
       if (response.statusCode == 200) {
@@ -213,6 +237,9 @@ class _TeamPageState extends State<TeamPage> {
                                     title: post['name'] ?? 'No Title',
                                     posterName:
                                         post['author_name'] ?? 'Unknown User',
+                                    posterImageUrl:
+                                        post['author_profile_image'],
+                                    posterId: post['author_id']?.toString(),
                                     postedDate: post['due_date'] != null
                                         ? DateTime.parse(
                                             post['due_date'].toString(),
@@ -271,7 +298,7 @@ class _TeamPageState extends State<TeamPage> {
               ),
             ),
             Text(
-              "PluemICT033",
+              _userFullName,
               style: TextStyle(color: Colors.grey[800], fontSize: 16),
             ),
             const SizedBox(height: 4),
@@ -285,7 +312,49 @@ class _TeamPageState extends State<TeamPage> {
           padding: const EdgeInsets.only(top: 10),
           child: Row(
             children: [
-
+              Stack(
+                children: [
+                  IconButton(
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ChatListPage(),
+                        ),
+                      );
+                      // Refresh unread count when returning
+                      _fetchUnreadChats();
+                    },
+                    icon: const Icon(Icons.notifications_none, size: 26),
+                  ),
+                  if (_unreadChatCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '$_unreadChatCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 8),
               Builder(
                 builder: (context) {
                   return GestureDetector(
@@ -327,8 +396,7 @@ class _TeamPageState extends State<TeamPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                      const SearchPage(searchType: 'team'),
+                  builder: (context) => const SearchPage(searchType: 'team'),
                 ),
               );
             },
@@ -344,17 +412,10 @@ class _TeamPageState extends State<TeamPage> {
                   Expanded(
                     child: Text(
                       'Search skill, project, topic ...',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 15,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 15),
                     ),
                   ),
-                  const Icon(
-                    Icons.search,
-                    color: Colors.black87,
-                    size: 26,
-                  ),
+                  const Icon(Icons.search, color: Colors.black87, size: 26),
                 ],
               ),
             ),
@@ -572,6 +633,8 @@ class _TeamPageState extends State<TeamPage> {
     required String postId,
     required String title,
     required String posterName,
+    String? posterImageUrl,
+    String? posterId,
     required String postedDate,
     required String personCount,
     required String roleCategory,
@@ -582,7 +645,7 @@ class _TeamPageState extends State<TeamPage> {
     required String link,
     required String requiredSkill,
   }) {
-    final isSaved = SavedService.isSaved(title);
+    final isSaved = SavedService.isSaved(postId);
 
     return Container(
       decoration: BoxDecoration(
@@ -605,7 +668,7 @@ class _TeamPageState extends State<TeamPage> {
             children: [
               if (imageUrl != null && imageUrl.isNotEmpty)
                 Image.network(
-                  'http://localhost:3000${imageUrl.split(',').first}',
+                  '${ApiConfig.baseUrl}${imageUrl.split(',').first}',
                   height: 140,
                   width: double.infinity,
                   fit: BoxFit.cover,
@@ -691,6 +754,7 @@ class _TeamPageState extends State<TeamPage> {
                     setState(() {
                       SavedService.toggleSave(
                         SavedItem(
+                          id: postId,
                           title: title,
                           date: postedDate,
                           tags: tags,
@@ -700,7 +764,11 @@ class _TeamPageState extends State<TeamPage> {
                           isTeam: true,
                           iconColor: const Color(0xFFE91E63),
                           imageUrl: imageUrl,
+                          posterName: posterName,
+                          posterImageUrl: posterImageUrl,
+                          posterId: posterId,
                         ),
+                        _userId,
                       );
                     });
                   },
@@ -757,11 +825,13 @@ class _TeamPageState extends State<TeamPage> {
                 CircleAvatar(
                   radius: 10,
                   backgroundColor: Colors.purple[100],
-                  child: const Icon(
-                    Icons.person,
-                    size: 14,
-                    color: Colors.purple,
-                  ),
+                  backgroundImage:
+                      (posterImageUrl != null && posterImageUrl.isNotEmpty)
+                      ? NetworkImage('${ApiConfig.baseUrl}$posterImageUrl')
+                      : null,
+                  child: (posterImageUrl == null || posterImageUrl.isEmpty)
+                      ? const Icon(Icons.person, size: 14, color: Colors.purple)
+                      : null,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -795,8 +865,13 @@ class _TeamPageState extends State<TeamPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.star, size: 16, color: Color(0xFFE91E63)),
+                    const Icon(
+                      Icons.psychology,
+                      size: 16,
+                      color: Color(0xFFE91E63),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -812,6 +887,7 @@ class _TeamPageState extends State<TeamPage> {
                 ),
                 const SizedBox(height: 6),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(Icons.group, size: 16, color: Color(0xFFE91E63)),
                     const SizedBox(width: 8),
@@ -850,15 +926,16 @@ class _TeamPageState extends State<TeamPage> {
                     roleNeeded: roleCategory,
                     teammatesNeeded: personCount,
                     requiredSkill: requiredSkill,
+                    posterName: posterName,
+                    posterImageUrl: posterImageUrl,
+                    posterId: posterId,
                   ),
                 ),
               );
             },
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: const BoxDecoration(
-                color: Color(0xFFE91E63),
-              ),
+              decoration: const BoxDecoration(color: Color(0xFFE91E63)),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

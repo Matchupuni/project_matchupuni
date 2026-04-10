@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../services/saved_service.dart';
 import 'edit_post_page.dart';
+import 'package:project_matchupuni/config/api_config.dart';
 
 class MyPostsPage extends StatefulWidget {
   const MyPostsPage({super.key});
@@ -20,16 +22,25 @@ class _MyPostsPageState extends State<MyPostsPage> {
   // Selection Mode State
   bool _isSelectionMode = false;
   final Set<String> _selectedIds = {};
+  String? _userId;
 
   @override
   void initState() {
     super.initState();
+    _loadUser();
     _fetchCards();
+  }
+
+  Future<void> _loadUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userId = prefs.getString('user_id');
+    });
   }
 
   Future<void> _fetchCards() async {
     try {
-      final uri = Uri.parse('http://localhost:3000/posts');
+      final uri = Uri.parse('${ApiConfig.baseUrl}/posts');
       final response = await http.get(uri);
       if (response.statusCode == 200) {
         if (mounted) {
@@ -60,99 +71,123 @@ class _MyPostsPageState extends State<MyPostsPage> {
       backgroundColor: const Color(0xFFF7F9FC),
       body: Column(
         children: [
-          if (_isSelectionMode && _selectedIds.isNotEmpty)
-            SafeArea(bottom: false, child: _buildDeleteActionBar()),
           Expanded(
-            child: SafeArea(
-              bottom: false,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20.0,
-                  vertical: 16.0,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Stack(
+              children: [
+                SafeArea(
+                  bottom: false,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0,
+                      vertical: 16.0,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 5,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            SizedBox(
+                              width: 80, // Fixed width to balance the title
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.05),
+                                          blurRadius: 5,
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.arrow_back,
+                                      color: Color(0xFF2C3246),
+                                      size: 20,
+                                    ),
+                                  ),
                                 ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.arrow_back,
-                              color: Color(0xFF2C3246),
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                        const Text(
-                          "My Posts",
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF333333),
-                          ),
-                        ),
-                        if (_isSelectionMode)
-                          TextButton(
-                            onPressed: () {
-                              setState(() {
-                                _isSelectionMode = false;
-                                _selectedIds.clear();
-                              });
-                            },
-                            child: const Text(
-                              "Cancel",
-                              style: TextStyle(
-                                color: Color(0xFF4A8AF4),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
                               ),
+                            ),
+                            const Text(
+                              "My Posts",
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF333333),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 80, // Fixed width to balance the title
+                              child: _isSelectionMode
+                                  ? TextButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _isSelectionMode = false;
+                                          _selectedIds.clear();
+                                        });
+                                      },
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: const Size(44, 44),
+                                        alignment: Alignment.centerRight,
+                                      ),
+                                      child: const Text(
+                                        "Cancel",
+                                        style: TextStyle(
+                                          color: Color(0xFF4A8AF4),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    )
+                                  : IconButton(
+                                      padding: EdgeInsets.zero,
+                                      alignment: Alignment.centerRight,
+                                      icon: const Icon(
+                                        Icons.delete_outline,
+                                        color: Color(0xFF333333),
+                                        size: 28,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _isSelectionMode = true;
+                                        });
+                                      },
+                                    ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        _buildToggleButtons(),
+                        const SizedBox(height: 16),
+                        if (_isLoading)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(),
                             ),
                           )
                         else
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Color(0xFF333333),
-                              size: 28,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _isSelectionMode = true;
-                              });
-                            },
-                          ),
+                          ..._buildFilteredCards(),
+                        const SizedBox(height: 30),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    _buildToggleButtons(),
-                    const SizedBox(height: 25),
-                    if (_isLoading)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(20.0),
-                          child: CircularProgressIndicator(),
-                        ),
-                      )
-                    else
-                      ..._buildFilteredCards(),
-                    const SizedBox(height: 30),
-                  ],
+                  ),
                 ),
-              ),
+                if (_isSelectionMode && _selectedIds.isNotEmpty)
+                  Positioned(
+                    bottom: 16,
+                    left: 20,
+                    right: 20,
+                    child: _buildDeleteActionBar(),
+                  ),
+              ],
             ),
           ),
           const CustomBottomNav(selectedIndex: 1), // Keeps the bottom bar
@@ -247,9 +282,12 @@ class _MyPostsPageState extends State<MyPostsPage> {
 
   List<Widget> _buildFilteredCards() {
     final filteredCards = _cards.where((card) {
+      if (card['author_id'] != _userId) return false;
+
       final postType = card['post_type'] as String? ?? 'activity';
       if (_isActivitySelected) {
-        return postType != 'team'; // This properly handles 'activity' and legacy defaults
+        return postType !=
+            'team'; // This properly handles 'activity' and legacy defaults
       } else {
         return postType == 'team';
       }
@@ -271,12 +309,14 @@ class _MyPostsPageState extends State<MyPostsPage> {
       final List<String> skillFields = card['fields'] != null
           ? List<String>.from(card['fields'])
           : [];
-      
+
       final String safeId = card['id'] ?? '';
       final String safeTitle = card['name'] ?? 'No Title';
       final String safeDate = card['due_date'] != null
-              ? DateTime.parse(card['due_date'].toString()).toLocal().toString().substring(0, 10)
-              : "No Date";
+          ? DateTime.parse(
+              card['due_date'].toString(),
+            ).toLocal().toString().substring(0, 10)
+          : "No Date";
       final String safeLink = card['register_link'] ?? '';
       final String safeContact = card['contact'] ?? 'No contact info';
       final String safeDetails = card['details'] ?? 'No details available.';
@@ -332,7 +372,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
     required String contact,
     required Map<String, dynamic> fullCardData,
   }) {
-    final isSaved = SavedService.isSaved(title);
+    final isSaved = SavedService.isSaved(id);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -352,9 +392,6 @@ class _MyPostsPageState extends State<MyPostsPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: _isSelectionMode && _selectedIds.contains(id)
-                ? Border.all(color: const Color(0xFFE91E63), width: 2)
-                : null,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -362,6 +399,12 @@ class _MyPostsPageState extends State<MyPostsPage> {
                 offset: const Offset(0, 4),
               ),
             ],
+          ),
+          foregroundDecoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: _isSelectionMode && _selectedIds.contains(id)
+                ? Border.all(color: const Color(0xFFE91E63), width: 2)
+                : null,
           ),
           clipBehavior: Clip.hardEdge,
           child: Stack(
@@ -375,7 +418,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                       fullCardData['image_path'] != null &&
                               fullCardData['image_path'].toString().isNotEmpty
                           ? Image.network(
-                              'http://localhost:3000${fullCardData['image_path'].toString().split(',').first}',
+                              '${ApiConfig.baseUrl}${fullCardData['image_path'].toString().split(',').first}',
                               height: 140,
                               width: double.infinity,
                               fit: BoxFit.cover,
@@ -485,6 +528,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                               setState(() {
                                 SavedService.toggleSave(
                                   SavedItem(
+                                    id: id,
                                     title: title,
                                     date: date,
                                     tags: [...categories, ...skillFields],
@@ -495,6 +539,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                                     iconColor: const Color(0xFF4A8AF4),
                                     imageUrl: fullCardData['image_path'],
                                   ),
+                                  _userId,
                                 );
                               });
                             },
@@ -572,11 +617,17 @@ class _MyPostsPageState extends State<MyPostsPage> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.info_outline, size: 16, color: Color(0xFFE91E63)),
+                            const Icon(
+                              Icons.info_outline,
+                              size: 16,
+                              color: Color(0xFFE91E63),
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                details.isNotEmpty ? details : "No details available.",
+                                details.isNotEmpty
+                                    ? details
+                                    : "No details available.",
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -592,7 +643,6 @@ class _MyPostsPageState extends State<MyPostsPage> {
                     ),
                   ),
                   const SizedBox(height: 12), // Spacer below details
-
                   // Bottom Banner (Edit or Selection overlay)
                   if (!_isSelectionMode)
                     GestureDetector(
@@ -704,9 +754,6 @@ class _MyPostsPageState extends State<MyPostsPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: _isSelectionMode && _selectedIds.contains(id)
-                ? Border.all(color: const Color(0xFFE91E63), width: 2)
-                : null,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -714,6 +761,12 @@ class _MyPostsPageState extends State<MyPostsPage> {
                 offset: const Offset(0, 4),
               ),
             ],
+          ),
+          foregroundDecoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: _isSelectionMode && _selectedIds.contains(id)
+                ? Border.all(color: const Color(0xFFE91E63), width: 2)
+                : null,
           ),
           clipBehavior: Clip.hardEdge,
           child: Column(
@@ -724,7 +777,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                 children: [
                   if (imageUrl != null && imageUrl.isNotEmpty)
                     Image.network(
-                      'http://localhost:3000${imageUrl.split(',').first}',
+                      '${ApiConfig.baseUrl}${imageUrl.split(',').first}',
                       height: 140,
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -734,7 +787,9 @@ class _MyPostsPageState extends State<MyPostsPage> {
                           decoration: const BoxDecoration(
                             color: Color(0xFFE8F0FE),
                             image: DecorationImage(
-                              image: AssetImage('assets/competition_preview.png'),
+                              image: AssetImage(
+                                'assets/competition_preview.png',
+                              ),
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -802,7 +857,11 @@ class _MyPostsPageState extends State<MyPostsPage> {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.check_circle, size: 14, color: Color(0xFF4CAF50)),
+                          Icon(
+                            Icons.check_circle,
+                            size: 14,
+                            color: Color(0xFF4CAF50),
+                          ),
                           SizedBox(width: 4),
                           Text(
                             "Active Post",
@@ -872,7 +931,9 @@ class _MyPostsPageState extends State<MyPostsPage> {
                   child: Wrap(
                     spacing: 6,
                     runSpacing: 6,
-                    children: tags.map((tag) => _buildTag(tag, const Color(0xFF4A8AF4))).toList(),
+                    children: tags
+                        .map((tag) => _buildTag(tag, const Color(0xFF4A8AF4)))
+                        .toList(),
                   ),
                 ),
               if (tags.isNotEmpty) const SizedBox(height: 12),
@@ -884,8 +945,15 @@ class _MyPostsPageState extends State<MyPostsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment
+                          .start, // Align to top for multi-line support
                       children: [
-                        const Icon(Icons.star, size: 16, color: Color(0xFFE91E63)),
+                        const Icon(
+                          Icons
+                              .psychology, // Changed from star to psychology to match competition_detail
+                          size: 16,
+                          color: Color(0xFFE91E63),
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -894,6 +962,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                               fontWeight: FontWeight.bold,
                               color: Colors.grey[700],
                               fontSize: 13,
+                              height: 1.4, // Line height for multi-line string
                             ),
                           ),
                         ),
@@ -901,8 +970,15 @@ class _MyPostsPageState extends State<MyPostsPage> {
                     ),
                     const SizedBox(height: 6),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment
+                          .start, // Align to top for multi-line support
                       children: [
-                        const Icon(Icons.group, size: 16, color: Color(0xFFE91E63)),
+                        const Icon(
+                          Icons
+                              .group, // Changed group icon style setup to top aligned
+                          size: 16,
+                          color: Color(0xFFE91E63),
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -911,6 +987,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                               fontWeight: FontWeight.bold,
                               color: Colors.grey[700],
                               fontSize: 13,
+                              height: 1.4,
                             ),
                           ),
                         ),
@@ -928,7 +1005,8 @@ class _MyPostsPageState extends State<MyPostsPage> {
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => EditPostPage(cardData: fullCardData),
+                        builder: (context) =>
+                            EditPostPage(cardData: fullCardData),
                       ),
                     );
                     if (result == true) {
@@ -937,9 +1015,7 @@ class _MyPostsPageState extends State<MyPostsPage> {
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFE91E63),
-                    ),
+                    decoration: const BoxDecoration(color: Color(0xFFE91E63)),
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -1003,9 +1079,10 @@ class _MyPostsPageState extends State<MyPostsPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -1137,9 +1214,15 @@ class _MyPostsPageState extends State<MyPostsPage> {
     setState(() => _isLoading = true);
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      var token = prefs.getString('auth_token') ?? '';
+
       final response = await http.delete(
-        Uri.parse('http://localhost:3000/posts/bulk'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('${ApiConfig.baseUrl}/posts/bulk'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: json.encode({"ids": _selectedIds.toList()}),
       );
 
@@ -1191,53 +1274,82 @@ class _MyPostsPageState extends State<MyPostsPage> {
     );
   }
 
-  void _showCustomSnackBar({
-    required String message,
-    required bool isError,
-  }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: TweenAnimationBuilder<double>(
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.elasticOut,
-          tween: Tween<double>(begin: 0.0, end: 1.0),
-          builder: (context, value, child) {
-            return Transform.translate(
-              offset: Offset(0, 30 * (1 - value)),
-              child: Opacity(
-                opacity: value.clamp(0.0, 1.0),
-                child: Row(
-                  children: [
-                    Icon(
-                      isError ? Icons.error_outline : Icons.check_circle_outline,
-                      color: Colors.white,
-                      size: 20,
+  void _showCustomSnackBar({required String message, required bool isError}) {
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 20,
+        left: 20,
+        right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.elasticOut,
+            tween: Tween<double>(begin: 0.0, end: 1.0),
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(0, -30 * (1 - value)), // Slide down from the top
+                child: Opacity(
+                  opacity: value.clamp(0.0, 1.0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        message,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                    decoration: BoxDecoration(
+                      color: isError
+                          ? const Color(0xFFE91E63)
+                          : const Color(0xFF4A8AF4),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                    child: Row(
+                      children: [
+                        Icon(
+                          isError
+                              ? Icons.error_outline
+                              : Icons.check_circle_outline,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            message,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
-        backgroundColor:
-            isError ? const Color(0xFFE91E63) : const Color(0xFF4A8AF4),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        duration: const Duration(seconds: 3),
-        elevation: 6,
       ),
     );
+
+    overlay.insert(overlayEntry);
+
+    // Remove the snackbar after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      if (overlayEntry.mounted) {
+        overlayEntry.remove();
+      }
+    });
   }
 }

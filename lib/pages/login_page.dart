@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'welcome_page.dart';
 import 'home_page.dart';
 import 'sign_in_page.dart';
+import 'package:project_matchupuni/config/api_config.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -16,6 +22,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  bool _isLoading = false;
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -23,8 +31,11 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
-    if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Please enter both email and password"),
@@ -34,12 +45,74 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // Validation passed, navigate to Home
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const HomePage()),
-      (route) => false,
-    );
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      String baseUrl = ApiConfig.baseUrl;
+      if (!kIsWeb && Platform.isAndroid) {
+        
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['token'];
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', token);
+        await prefs.setString('user_id', data['user']['id']);
+        await prefs.setString('user_full_name', data['user']['full_name']);
+        if (data['user']['email'] != null) {
+          await prefs.setString('user_email', data['user']['email']);
+        }
+        if (data['user']['profile_img'] != null) {
+          await prefs.setString(
+            'user_profile_img',
+            data['user']['profile_img'],
+          );
+        }
+
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const HomePage()),
+            (route) => false,
+          );
+        }
+      } else {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['error'] ?? "Login failed"),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Network error: $e"),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -50,7 +123,10 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Stack(
           children: [
             SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 20.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 30.0,
+                vertical: 20.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -99,7 +175,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
 
                   // Password field
-                  _buildField("Enter your password", _passwordController, isPassword: true),
+                  _buildField(
+                    "Enter your password",
+                    _passwordController,
+                    isPassword: true,
+                  ),
 
                   // Forgot Password link
                   Align(
@@ -108,7 +188,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () {},
                       child: Text(
                         "Forgot Password?",
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ),
@@ -120,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     height: 54,
                     child: ElevatedButton(
-                      onPressed: _handleLogin,
+                      onPressed: _isLoading ? null : _handleLogin,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _pink,
                         foregroundColor: Colors.white,
@@ -129,10 +212,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text(
-                        "Login",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              "Login",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
 
@@ -176,7 +264,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // Reusable input field
-  Widget _buildField(String hint, TextEditingController controller, {bool isPassword = false}) {
+  Widget _buildField(
+    String hint,
+    TextEditingController controller, {
+    bool isPassword = false,
+  }) {
     return TextField(
       controller: controller,
       obscureText: isPassword,
@@ -188,7 +280,10 @@ class _LoginScreenState extends State<LoginScreen> {
         suffixIcon: isPassword
             ? const Icon(Icons.visibility_outlined, color: Colors.grey)
             : null,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 18,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.grey.shade300),

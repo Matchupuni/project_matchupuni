@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../services/saved_service.dart';
 import '../services/search_history_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'competition_detail_page.dart';
 import 'report_page.dart';
+import 'package:project_matchupuni/config/api_config.dart';
 
 class SearchPage extends StatefulWidget {
   /// 'activity' for Home page searches, 'team' for Team page searches
@@ -28,12 +30,14 @@ class _SearchPageState extends State<SearchPage> {
   List<dynamic> _results = [];
   bool _isLoading = false;
   bool _hasSearched = false;
+  String? _userId;
 
   List<String> _recentSearches = [];
 
   @override
   void initState() {
     super.initState();
+    _loadUser();
     _loadRecentSearches();
     // Auto-focus the search field when the page opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -41,9 +45,19 @@ class _SearchPageState extends State<SearchPage> {
     });
   }
 
+  Future<void> _loadUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _userId = prefs.getString('user_id');
+      });
+    }
+  }
+
   Future<void> _loadRecentSearches() async {
-    final searches =
-        await SearchHistoryService.getRecentSearches(widget.searchType);
+    final searches = await SearchHistoryService.getRecentSearches(
+      widget.searchType,
+    );
     if (mounted) {
       setState(() {
         _recentSearches = searches;
@@ -110,13 +124,9 @@ class _SearchPageState extends State<SearchPage> {
         }
       }
 
-      final uri = Uri(
-        scheme: 'http',
-        host: 'localhost',
-        port: 3000,
-        path: '/posts',
-        queryParameters: queryParams.isNotEmpty ? queryParams : null,
-      );
+      final uri = Uri.parse(
+        '${ApiConfig.baseUrl}/posts',
+      ).replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri);
       if (response.statusCode == 200) {
@@ -246,8 +256,9 @@ class _SearchPageState extends State<SearchPage> {
                                   fontSize: 15,
                                 ),
                                 border: InputBorder.none,
-                                contentPadding:
-                                    const EdgeInsets.only(bottom: 5),
+                                contentPadding: const EdgeInsets.only(
+                                  bottom: 5,
+                                ),
                               ),
                             ),
                           ),
@@ -335,9 +346,7 @@ class _SearchPageState extends State<SearchPage> {
             const SizedBox(height: 10),
 
             // Results list
-            Expanded(
-              child: _buildResultsBody(),
-            ),
+            Expanded(child: _buildResultsBody()),
           ],
         ),
       ),
@@ -442,8 +451,10 @@ class _SearchPageState extends State<SearchPage> {
                   _loadRecentSearches();
                 },
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFEBEE),
                     borderRadius: BorderRadius.circular(16),
@@ -474,24 +485,33 @@ class _SearchPageState extends State<SearchPage> {
                 direction: DismissDirection.endToStart,
                 onDismissed: (_) async {
                   await SearchHistoryService.deleteSearch(
-                      query, widget.searchType);
+                    query,
+                    widget.searchType,
+                  );
                   _loadRecentSearches();
                 },
                 background: Container(
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
                   margin: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red[50],
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.delete_outline,
-                      color: Colors.red[400], size: 22),
+                  child: Icon(
+                    Icons.delete_outline,
+                    color: Colors.red[400],
+                    size: 22,
+                  ),
                 ),
                 child: Container(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
@@ -506,9 +526,14 @@ class _SearchPageState extends State<SearchPage> {
                   child: ListTile(
                     dense: true,
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 0),
-                    leading: Icon(Icons.history,
-                        size: 20, color: Colors.grey[400]),
+                      horizontal: 16,
+                      vertical: 0,
+                    ),
+                    leading: Icon(
+                      Icons.history,
+                      size: 20,
+                      color: Colors.grey[400],
+                    ),
                     title: Text(
                       query,
                       style: TextStyle(
@@ -517,8 +542,11 @@ class _SearchPageState extends State<SearchPage> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    trailing: Icon(Icons.north_west,
-                        size: 16, color: Colors.grey[400]),
+                    trailing: Icon(
+                      Icons.north_west,
+                      size: 16,
+                      color: Colors.grey[400],
+                    ),
                     onTap: () {
                       _performSearch(query);
                     },
@@ -536,23 +564,26 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildActivityResultCard(Map<String, dynamic> card) {
     final String postId = card['id']?.toString() ?? '';
     final String title = card['name'] ?? 'No Title';
-    final String posterName = 'ICT Club';
+    final String posterName = card['author_name'] ?? 'Unknown User';
+    final String? posterImageUrl = card['author_profile_image'];
+    final String? posterId = card['author_id']?.toString();
     final String date = card['due_date'] != null
-        ? DateTime.parse(card['due_date'].toString())
-            .toLocal()
-            .toString()
-            .substring(0, 10)
+        ? DateTime.parse(
+            card['due_date'].toString(),
+          ).toLocal().toString().substring(0, 10)
         : 'No Date';
-    final List<String> categories =
-        card['tags'] != null ? List<String>.from(card['tags']) : [];
-    final List<String> skillFields =
-        card['fields'] != null ? List<String>.from(card['fields']) : [];
+    final List<String> categories = card['tags'] != null
+        ? List<String>.from(card['tags'])
+        : [];
+    final List<String> skillFields = card['fields'] != null
+        ? List<String>.from(card['fields'])
+        : [];
     final String details = card['details'] ?? 'No details available.';
     final String link = card['register_link'] ?? '';
     final String contact = card['contact'] ?? 'No contact info';
     final String? imageUrl = card['image_path'];
 
-    final isSaved = SavedService.isSaved(title);
+    final isSaved = SavedService.isSaved(postId);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
@@ -577,7 +608,7 @@ class _SearchPageState extends State<SearchPage> {
               children: [
                 imageUrl != null && imageUrl.isNotEmpty
                     ? Image.network(
-                        'http://localhost:3000${imageUrl.split(',').first}',
+                        '${ApiConfig.baseUrl}${imageUrl.split(',').first}',
                         height: 140,
                         width: double.infinity,
                         fit: BoxFit.cover,
@@ -601,7 +632,9 @@ class _SearchPageState extends State<SearchPage> {
                   right: 12,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.6),
                       borderRadius: BorderRadius.circular(12),
@@ -609,8 +642,11 @@ class _SearchPageState extends State<SearchPage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.calendar_today,
-                            size: 12, color: Colors.white),
+                        const Icon(
+                          Icons.calendar_today,
+                          size: 12,
+                          color: Colors.white,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           date,
@@ -648,6 +684,7 @@ class _SearchPageState extends State<SearchPage> {
                       setState(() {
                         SavedService.toggleSave(
                           SavedItem(
+                            id: postId,
                             title: title,
                             date: date,
                             tags: [...categories, ...skillFields],
@@ -657,7 +694,11 @@ class _SearchPageState extends State<SearchPage> {
                             isTeam: false,
                             iconColor: const Color(0xFF4A8AF4),
                             imageUrl: imageUrl,
+                            posterName: posterName,
+                            posterImageUrl: posterImageUrl,
+                            posterId: posterId,
                           ),
+                          _userId,
                         );
                       });
                     },
@@ -711,8 +752,17 @@ class _SearchPageState extends State<SearchPage> {
                   CircleAvatar(
                     radius: 10,
                     backgroundColor: Colors.purple[100],
-                    child: const Icon(Icons.person,
-                        size: 14, color: Colors.purple),
+                    backgroundImage:
+                        (posterImageUrl != null && posterImageUrl.isNotEmpty)
+                        ? NetworkImage('${ApiConfig.baseUrl}$posterImageUrl')
+                        : null,
+                    child: (posterImageUrl == null || posterImageUrl.isEmpty)
+                        ? const Icon(
+                            Icons.person,
+                            size: 14,
+                            color: Colors.purple,
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -734,10 +784,12 @@ class _SearchPageState extends State<SearchPage> {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  ...categories
-                      .map((tag) => _buildTag(tag, const Color(0xFF4A8AF4))),
-                  ...skillFields
-                      .map((field) => _buildTag(field, const Color(0xFF4CAF50))),
+                  ...categories.map(
+                    (tag) => _buildTag(tag, const Color(0xFF4A8AF4)),
+                  ),
+                  ...skillFields.map(
+                    (field) => _buildTag(field, const Color(0xFF4CAF50)),
+                  ),
                 ],
               ),
             ),
@@ -751,11 +803,17 @@ class _SearchPageState extends State<SearchPage> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.info_outline, size: 16, color: Color(0xFFE91E63)),
+                      const Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Color(0xFFE91E63),
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          details.isNotEmpty ? details : "No details available.",
+                          details.isNotEmpty
+                              ? details
+                              : "No details available.",
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -785,15 +843,16 @@ class _SearchPageState extends State<SearchPage> {
                       link: link,
                       contact: contact,
                       imageUrl: imageUrl,
+                      posterName: posterName,
+                      posterImageUrl: posterImageUrl,
+                      posterId: posterId,
                     ),
                   ),
                 );
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE91E63),
-                ),
+                decoration: const BoxDecoration(color: Color(0xFFE91E63)),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -806,8 +865,11 @@ class _SearchPageState extends State<SearchPage> {
                       ),
                     ),
                     SizedBox(width: 8),
-                    Icon(Icons.arrow_forward_ios,
-                        color: Colors.white, size: 14),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white,
+                      size: 14,
+                    ),
                   ],
                 ),
               ),
@@ -823,14 +885,14 @@ class _SearchPageState extends State<SearchPage> {
     final String postId = post['id']?.toString() ?? '';
     final String title = post['name'] ?? 'No Title';
     final String posterName = post['author_name'] ?? 'Unknown User';
+    final String? posterImageUrl = post['author_profile_image'];
+    final String? posterId = post['author_id']?.toString();
     final String postedDate = post['due_date'] != null
-        ? DateTime.parse(post['due_date'].toString())
-            .toLocal()
-            .toString()
-            .substring(0, 10)
+        ? DateTime.parse(
+            post['due_date'].toString(),
+          ).toLocal().toString().substring(0, 10)
         : 'No Date';
-    final String personCount =
-        '${post['teammates_needed'] ?? "?"} People';
+    final String personCount = '${post['teammates_needed'] ?? "?"} People';
     final String roleCategory = post['role_needed'] ?? 'Any Role';
     final String roleDescription = post['details'] ?? 'No Description';
     final String contact = post['contact'] ?? 'No contact info';
@@ -847,7 +909,7 @@ class _SearchPageState extends State<SearchPage> {
       allTags.addAll(List<String>.from(post['fields']));
     }
 
-    final isSaved = SavedService.isSaved(title);
+    final isSaved = SavedService.isSaved(postId);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
@@ -872,7 +934,7 @@ class _SearchPageState extends State<SearchPage> {
               children: [
                 if (imageUrl != null && imageUrl.isNotEmpty)
                   Image.network(
-                    'http://localhost:3000$imageUrl',
+                    '${ApiConfig.baseUrl}$imageUrl',
                     height: 120,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -882,8 +944,7 @@ class _SearchPageState extends State<SearchPage> {
                         decoration: const BoxDecoration(
                           color: Color(0xFFE8F0FE),
                           image: DecorationImage(
-                            image:
-                                AssetImage('assets/competition_preview.png'),
+                            image: AssetImage('assets/competition_preview.png'),
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -906,7 +967,9 @@ class _SearchPageState extends State<SearchPage> {
                   right: 12,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(12),
@@ -914,8 +977,11 @@ class _SearchPageState extends State<SearchPage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.calendar_today,
-                            size: 12, color: Colors.white),
+                        const Icon(
+                          Icons.calendar_today,
+                          size: 12,
+                          color: Colors.white,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           postedDate,
@@ -953,6 +1019,7 @@ class _SearchPageState extends State<SearchPage> {
                       setState(() {
                         SavedService.toggleSave(
                           SavedItem(
+                            id: postId,
                             title: title,
                             date: postedDate,
                             tags: allTags,
@@ -962,7 +1029,11 @@ class _SearchPageState extends State<SearchPage> {
                             isTeam: true,
                             iconColor: const Color(0xFFE91E63),
                             imageUrl: imageUrl,
+                            posterName: posterName,
+                            posterImageUrl: posterImageUrl,
+                            posterId: posterId,
                           ),
+                          _userId,
                         );
                       });
                     },
@@ -986,8 +1057,8 @@ class _SearchPageState extends State<SearchPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ReportPage(
-                                postId: postId, postTitle: title),
+                            builder: (context) =>
+                                ReportPage(postId: postId, postTitle: title),
                           ),
                         );
                       },
@@ -1016,8 +1087,17 @@ class _SearchPageState extends State<SearchPage> {
                   CircleAvatar(
                     radius: 10,
                     backgroundColor: Colors.purple[100],
-                    child: const Icon(Icons.person,
-                        size: 14, color: Colors.purple),
+                    backgroundImage:
+                        (posterImageUrl != null && posterImageUrl.isNotEmpty)
+                        ? NetworkImage('${ApiConfig.baseUrl}$posterImageUrl')
+                        : null,
+                    child: (posterImageUrl == null || posterImageUrl.isEmpty)
+                        ? const Icon(
+                            Icons.person,
+                            size: 14,
+                            color: Colors.purple,
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -1052,8 +1132,11 @@ class _SearchPageState extends State<SearchPage> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.star,
-                          size: 16, color: Color(0xFFE91E63)),
+                      const Icon(
+                        Icons.star,
+                        size: 16,
+                        color: Color(0xFFE91E63),
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -1070,8 +1153,11 @@ class _SearchPageState extends State<SearchPage> {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.group,
-                          size: 16, color: Color(0xFFE91E63)),
+                      const Icon(
+                        Icons.group,
+                        size: 16,
+                        color: Color(0xFFE91E63),
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -1107,15 +1193,16 @@ class _SearchPageState extends State<SearchPage> {
                       roleNeeded: roleCategory,
                       teammatesNeeded: personCount,
                       requiredSkill: requiredSkill,
+                      posterName: posterName,
+                      posterImageUrl: posterImageUrl,
+                      posterId: posterId,
                     ),
                   ),
                 );
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE91E63),
-                ),
+                decoration: const BoxDecoration(color: Color(0xFFE91E63)),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -1128,8 +1215,11 @@ class _SearchPageState extends State<SearchPage> {
                       ),
                     ),
                     SizedBox(width: 8),
-                    Icon(Icons.arrow_forward_ios,
-                        color: Colors.white, size: 14),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white,
+                      size: 14,
+                    ),
                   ],
                 ),
               ),
@@ -1219,7 +1309,9 @@ class _SearchPageState extends State<SearchPage> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 8),
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? const Color(0xFF4285F4)
@@ -1228,8 +1320,9 @@ class _SearchPageState extends State<SearchPage> {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF4285F4)
-                                .withValues(alpha: 0.3),
+                            color: const Color(
+                              0xFF4285F4,
+                            ).withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -1276,7 +1369,9 @@ class _SearchPageState extends State<SearchPage> {
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 5),
+                  horizontal: 12,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: _sortBy == 'Newest'
                       ? const Color(0xFFE91E63)
@@ -1297,8 +1392,7 @@ class _SearchPageState extends State<SearchPage> {
                     ),
                     if (_sortBy == 'Newest') ...[
                       const SizedBox(width: 4),
-                      const Icon(Icons.check,
-                          color: Colors.white, size: 14),
+                      const Icon(Icons.check, color: Colors.white, size: 14),
                     ],
                   ],
                 ),
@@ -1314,7 +1408,9 @@ class _SearchPageState extends State<SearchPage> {
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 5),
+                  horizontal: 12,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: _sortBy == 'Oldest'
                       ? const Color(0xFFE91E63)
@@ -1335,8 +1431,7 @@ class _SearchPageState extends State<SearchPage> {
                     ),
                     if (_sortBy == 'Oldest') ...[
                       const SizedBox(width: 4),
-                      const Icon(Icons.check,
-                          color: Colors.white, size: 14),
+                      const Icon(Icons.check, color: Colors.white, size: 14),
                     ],
                   ],
                 ),

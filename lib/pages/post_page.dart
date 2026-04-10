@@ -5,9 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/custom_bottom_nav.dart';
 import 'home_page.dart';
 import 'my_posts_page.dart';
+import 'package:project_matchupuni/config/api_config.dart';
 
 class PostPage extends StatefulWidget {
   const PostPage({super.key});
@@ -132,14 +134,14 @@ class _PostPageState extends State<PostPage> {
             child: SafeArea(
               bottom: false,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20.0, 45.0, 20.0, 16.0),
+                padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const SizedBox(width: 40), // Left spacer for centering
+                        const SizedBox(width: 40), // Spacer for centering
                         const Text(
                           "Create Post",
                           style: TextStyle(
@@ -167,18 +169,18 @@ class _PostPageState extends State<PostPage> {
                                   color: Colors.black.withValues(alpha: 0.05),
                                   blurRadius: 5,
                                 ),
-                                child: const Icon(
-                                  Icons.history,
-                                  color: Color(0xFFE91E63),
-                                  size: 24,
-                                ),
-                              ),
+                              ],
                             ),
-                          ],
+                            child: const Icon(
+                              Icons.history,
+                              color: Color(0xFFE91E63),
+                              size: 24,
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     _buildToggleButtons(),
                     const SizedBox(height: 16),
                     _buildPhotoUploadBox(),
@@ -232,15 +234,15 @@ class _PostPageState extends State<PostPage> {
                     ] else ...[
                       // --- General Info ---
                       const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8.0),
+                        padding: EdgeInsets.only(top: 16.0, bottom: 24.0),
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
                             "General Info",
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF333333),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1E293B),
                             ),
                           ),
                         ),
@@ -274,21 +276,21 @@ class _PostPageState extends State<PostPage> {
                       ),
 
                       const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16.0),
-                        child: Divider(thickness: 1, color: Color(0xFFE0E0E0)),
+                        padding: EdgeInsets.symmetric(vertical: 24.0),
+                        child: Divider(thickness: 1, color: Color(0xFFE2E8F0)),
                       ),
 
                       // --- Recruitment ---
                       const Padding(
-                        padding: EdgeInsets.only(bottom: 8.0),
+                        padding: EdgeInsets.only(bottom: 24.0),
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
                             "Recruitment",
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF333333),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1E293B),
                             ),
                           ),
                         ),
@@ -354,7 +356,7 @@ class _PostPageState extends State<PostPage> {
 
   Widget _buildToggleButtons() {
     return Container(
-      height: 38,
+      height: 40,
       decoration: BoxDecoration(
         color: const Color(0xFFD3DEF5),
         borderRadius: BorderRadius.circular(22),
@@ -374,9 +376,9 @@ class _PostPageState extends State<PostPage> {
                         style: TextStyle(
                           color: _isActivitySelected
                               ? Colors.white
-                              : Colors.grey[600],
+                              : Colors.grey[500],
                           fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                          fontSize: 14,
                         ),
                       ),
                     ),
@@ -394,9 +396,9 @@ class _PostPageState extends State<PostPage> {
                         style: TextStyle(
                           color: !_isActivitySelected
                               ? Colors.white
-                              : Colors.grey[600],
+                              : Colors.grey[500],
                           fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                          fontSize: 14,
                         ),
                       ),
                     ),
@@ -415,7 +417,7 @@ class _PostPageState extends State<PostPage> {
               widthFactor: 0.5,
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4A8AF4),
+                  color: const Color(0xFF4A8AF4), // Blue active state
                   borderRadius: BorderRadius.circular(22),
                 ),
                 child: Center(
@@ -424,7 +426,7 @@ class _PostPageState extends State<PostPage> {
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
-                      fontSize: 13,
+                      fontSize: 14,
                     ),
                   ),
                 ),
@@ -443,14 +445,18 @@ class _PostPageState extends State<PostPage> {
         height: 150,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFFF4F7FC),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFD3DEF5), width: 1.5),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFE2E8F0),
+            width: 1.5,
+            style: BorderStyle.values[1],
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -466,36 +472,31 @@ class _PostPageState extends State<PostPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              const Icon(Icons.image, size: 50, color: Color(0xFFD3DEF5)),
-              Positioned(
-                top: -5,
-                right: -5,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF4F7FC),
-                    shape: BoxShape.circle,
-                  ),
-                  padding: const EdgeInsets.all(2),
-                  child: const Icon(
-                    Icons.add,
-                    size: 18,
-                    color: Color(0xFFD3DEF5),
-                  ),
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF), // เบาๆ ฟ้าอ่อน
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.cloud_upload_outlined,
+              size: 36,
+              color: Color(0xFF4A8AF4),
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           const Text(
-            "Add Your Photo",
+            "Click to upload photos",
             style: TextStyle(
-              color: Color(0xFF8FA5C1),
+              color: Color(0xFF334155),
               fontWeight: FontWeight.w600,
               fontSize: 14,
             ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            "Max 5 photos (JPG, PNG)",
+            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
           ),
         ],
       ),
@@ -565,28 +566,42 @@ class _PostPageState extends State<PostPage> {
     );
   }
 
-  Widget _buildLabelRow(String label, Widget child) {
+  Widget _buildLabelRow(String label, Widget child, {bool isRequired = false}) {
+    // If the label ends with ':', let's strip it to look cleaner
+    final String cleanLabel = label.endsWith(':')
+        ? label.substring(0, label.length - 1)
+        : label;
+
     return Padding(
-      padding: const EdgeInsets.only(
-        bottom: 16.0,
-      ), // increased padding for breathing room
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment
-            .center, // center align label and field vertically
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 80, // slightly adjusted width
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: Color(0xFF333333),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
+            child: RichText(
+              text: TextSpan(
+                text: cleanLabel,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  color: Color(0xFF1E293B),
+                ),
+                children: [
+                  if (isRequired)
+                    const TextSpan(
+                      text: ' *',
+                      style: TextStyle(
+                        color: Color(0xFFE91E63),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
-          const SizedBox(width: 12), // gap between label and field
-          Expanded(child: child),
+          child,
         ],
       ),
     );
@@ -599,11 +614,17 @@ class _PostPageState extends State<PostPage> {
     bool isNumber = false,
   }) {
     return Container(
-      // width: 220, // Removed fixed width to allow expansion
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            offset: const Offset(0, 2),
+            blurRadius: 4,
+          ),
+        ],
       ),
       child: TextField(
         controller: controller,
@@ -612,14 +633,14 @@ class _PostPageState extends State<PostPage> {
         inputFormatters: isNumber
             ? [FilteringTextInputFormatter.digitsOnly]
             : null,
-        style: const TextStyle(fontSize: 13),
+        style: const TextStyle(fontSize: 15, color: Color(0xFF334155)),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 10,
+            horizontal: 16,
+            vertical: 14,
           ),
         ),
       ),
@@ -628,24 +649,41 @@ class _PostPageState extends State<PostPage> {
 
   Widget _buildNumberCounter({required TextEditingController controller}) {
     return Container(
-      height: 48,
+      height: 52,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            offset: const Offset(0, 2),
+            blurRadius: 4,
+          ),
+        ],
       ),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.remove, color: Colors.black54),
-            onPressed: () {
-              int currentValue = int.tryParse(controller.text) ?? 1;
-              if (currentValue > 1) {
-                setState(() {
-                  controller.text = (currentValue - 1).toString();
-                });
-              }
-            },
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                bottomLeft: Radius.circular(12),
+              ),
+              onTap: () {
+                int currentValue = int.tryParse(controller.text) ?? 1;
+                if (currentValue > 1) {
+                  setState(() {
+                    controller.text = (currentValue - 1).toString();
+                  });
+                }
+              },
+              child: const Padding(
+                padding: EdgeInsets.all(12.0),
+                child: Icon(Icons.remove, color: Color(0xFFE91E63)),
+              ),
+            ),
           ),
           Expanded(
             child: TextField(
@@ -653,30 +691,44 @@ class _PostPageState extends State<PostPage> {
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF334155),
+              ),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: "1",
                 hintStyle: TextStyle(
                   color: Colors.grey[400],
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: FontWeight.normal,
                 ),
                 contentPadding: EdgeInsets.zero,
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.black54),
-            onPressed: () {
-              int currentValue = int.tryParse(controller.text) ?? 0;
-              if (currentValue == 0 && controller.text.isEmpty) {
-                currentValue = 1;
-              }
-              setState(() {
-                controller.text = (currentValue + 1).toString();
-              });
-            },
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(12),
+                bottomRight: Radius.circular(12),
+              ),
+              onTap: () {
+                int currentValue = int.tryParse(controller.text) ?? 0;
+                if (currentValue == 0 && controller.text.isEmpty) {
+                  currentValue = 1;
+                }
+                setState(() {
+                  controller.text = (currentValue + 1).toString();
+                });
+              },
+              child: const Padding(
+                padding: EdgeInsets.all(12.0),
+                child: Icon(Icons.add, color: Color(0xFF4A8AF4)),
+              ),
+            ),
           ),
         ],
       ),
@@ -818,39 +870,31 @@ class _PostPageState extends State<PostPage> {
     );
   }
 
-  // Helper to wrap fields with the '*' next to them based on length
+  // Removed redundant asterisk inline - asterisks are better placed next to labels or assumed if all are required
   Widget _withRequiredIndicator(Widget child) {
-    return Row(
-      // Changed Wrap to Row for better control within the Expanded parent
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(child: child), // Field takes remaining space
-        const SizedBox(width: 8),
-        const Text(
-          '*',
-          style: TextStyle(
-            color: Color(0xFFE91E63),
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
+    return child;
   }
 
   Widget _buildDueDateField() {
     return GestureDetector(
       onTap: () => _selectDate(context),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        height: 52, // Match height of textfields
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              offset: const Offset(0, 2),
+              blurRadius: 4,
+            ),
+          ],
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               _selectedDate == null
@@ -859,12 +903,15 @@ class _PostPageState extends State<PostPage> {
               style: TextStyle(
                 color: _selectedDate == null
                     ? Colors.grey[400]
-                    : Colors.black87,
-                fontSize: 12,
+                    : const Color(0xFF334155),
+                fontSize: 15,
               ),
             ),
-            const SizedBox(width: 8),
-            const Icon(Icons.calendar_today, color: Colors.black87, size: 16),
+            const Icon(
+              Icons.calendar_today,
+              color: Color(0xFF64748B),
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -910,15 +957,24 @@ class _PostPageState extends State<PostPage> {
         return;
       }
       if (_registerLinkController.text.trim().isEmpty) {
-        _showCustomSnackBar(message: 'Please enter a Register link', isError: true);
+        _showCustomSnackBar(
+          message: 'Please enter a Register link',
+          isError: true,
+        );
         return;
       }
       if (_contactController.text.trim().isEmpty) {
-        _showCustomSnackBar(message: 'Please enter Contact info', isError: true);
+        _showCustomSnackBar(
+          message: 'Please enter Contact info',
+          isError: true,
+        );
         return;
       }
       if (_selectedTags.isEmpty) {
-        _showCustomSnackBar(message: 'Please select at least one Tag', isError: true);
+        _showCustomSnackBar(
+          message: 'Please select at least one Tag',
+          isError: true,
+        );
         return;
       }
     } else {
@@ -932,20 +988,32 @@ class _PostPageState extends State<PostPage> {
         return;
       }
       if (_requiredSkillController.text.trim().isEmpty) {
-        _showCustomSnackBar(message: 'Please enter Required Skills', isError: true);
+        _showCustomSnackBar(
+          message: 'Please enter Required Skills',
+          isError: true,
+        );
         return;
       }
-      if (_teammatesNeededController.text.trim().isEmpty || 
+      if (_teammatesNeededController.text.trim().isEmpty ||
           _teammatesNeededController.text.trim() == "0") {
-        _showCustomSnackBar(message: 'Please specify Teammates Needed', isError: true);
+        _showCustomSnackBar(
+          message: 'Please specify Teammates Needed',
+          isError: true,
+        );
         return;
       }
       if (_contactController.text.trim().isEmpty) {
-        _showCustomSnackBar(message: 'Please enter Contact info', isError: true);
+        _showCustomSnackBar(
+          message: 'Please enter Contact info',
+          isError: true,
+        );
         return;
       }
       if (_registerLinkController.text.trim().isEmpty) {
-        _showCustomSnackBar(message: 'Please enter a Register link', isError: true);
+        _showCustomSnackBar(
+          message: 'Please enter a Register link',
+          isError: true,
+        );
         return;
       }
     }
@@ -956,7 +1024,7 @@ class _PostPageState extends State<PostPage> {
       if (_selectedImages.isNotEmpty) {
         var uploadRequest = http.MultipartRequest(
           'POST',
-          Uri.parse('http://localhost:3000/upload'),
+          Uri.parse('${ApiConfig.baseUrl}/upload'),
         );
         for (var image in _selectedImages) {
           uploadRequest.files.add(
@@ -1001,9 +1069,16 @@ class _PostPageState extends State<PostPage> {
         "contact": _contactController.text.trim(),
       };
 
+      // Fetch token from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      var token = prefs.getString('auth_token') ?? '';
+
       final response = await http.post(
-        Uri.parse('http://localhost:3000/posts'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('${ApiConfig.baseUrl}/posts'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: json.encode(payload),
       );
 
@@ -1097,53 +1172,81 @@ class _PostPageState extends State<PostPage> {
     );
   }
 
-  void _showCustomSnackBar({
-    required String message,
-    required bool isError,
-  }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: TweenAnimationBuilder<double>(
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.elasticOut,
-          tween: Tween<double>(begin: 0.0, end: 1.0),
-          builder: (context, value, child) {
-            return Transform.translate(
-              offset: Offset(0, 30 * (1 - value)),
-              child: Opacity(
-                opacity: value.clamp(0.0, 1.0),
-                child: Row(
-                  children: [
-                    Icon(
-                      isError ? Icons.error_outline : Icons.check_circle_outline,
-                      color: Colors.white,
-                      size: 20,
+  void _showCustomSnackBar({required String message, required bool isError}) {
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 20,
+        left: 20,
+        right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.elasticOut,
+            tween: Tween<double>(begin: 0.0, end: 1.0),
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(0, -30 * (1 - value)), // Slide down from the top
+                child: Opacity(
+                  opacity: value.clamp(0.0, 1.0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        message,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                    decoration: BoxDecoration(
+                      color: isError
+                          ? const Color(0xFFE91E63)
+                          : const Color(0xFF4A8AF4),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                    child: Row(
+                      children: [
+                        Icon(
+                          isError
+                              ? Icons.error_outline
+                              : Icons.check_circle_outline,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            message,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
-        backgroundColor:
-            isError ? const Color(0xFFE91E63) : const Color(0xFF4A8AF4),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        duration: const Duration(seconds: 3),
-        elevation: 6,
       ),
     );
+
+    overlay.insert(overlayEntry);
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (overlayEntry.mounted) {
+        overlayEntry.remove();
+      }
+    });
   }
 }
