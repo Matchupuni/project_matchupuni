@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../pages/home_page.dart';
 import '../pages/post_page.dart';
 import '../pages/team_page.dart';
+import '../pages/chat_list_page.dart';
 
 class CustomBottomNav extends StatelessWidget {
   final int selectedIndex;
@@ -16,8 +17,10 @@ class CustomBottomNav extends StatelessWidget {
       page = const HomePage();
     } else if (index == 1) {
       page = const PostPage();
-    } else {
+    } else if (index == 2) {
       page = const TeamPage();
+    } else {
+      page = const ChatListPage();
     }
 
     Navigator.pushReplacement(
@@ -57,6 +60,7 @@ class CustomBottomNav extends StatelessWidget {
               _buildNavItem(context, 0, Icons.home, "Home"),
               _buildNavItem(context, 1, Icons.add, "Post"),
               _buildNavItem(context, 2, Icons.pie_chart_outline, "Team"),
+              _buildNavItem(context, 3, Icons.message_outlined, "Message"),
             ],
           ),
         ),

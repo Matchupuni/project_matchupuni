@@ -24,6 +24,8 @@ class _SignInPageState extends State<SignInPage> {
   final TextEditingController _confirmController = TextEditingController();
 
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
@@ -34,6 +36,22 @@ class _SignInPageState extends State<SignInPage> {
     super.dispose();
   }
 
+  void _showTopNotification(String message, {Color color = Colors.redAccent}) {
+    OverlayEntry? overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) => _TopNotificationWidget(
+        message: message,
+        backgroundColor: color,
+        onDismissed: () {
+          overlayEntry?.remove();
+        },
+      ),
+    );
+
+    Overlay.of(context).insert(overlayEntry);
+  }
+
   Future<void> _handleRegister() async {
     final String user = _usernameController.text.trim();
     final String email = _emailController.text.trim();
@@ -41,22 +59,12 @@ class _SignInPageState extends State<SignInPage> {
     final String confirm = _confirmController.text.trim();
 
     if (user.isEmpty || email.isEmpty || pass.isEmpty || confirm.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill in all fields"),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      _showTopNotification("Please fill in all fields");
       return;
     }
 
     if (pass != confirm) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Passwords do not match!"),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      _showTopNotification("Password and Confirm password do not match!");
       return;
     }
 
@@ -66,9 +74,7 @@ class _SignInPageState extends State<SignInPage> {
 
     try {
       String baseUrl = ApiConfig.baseUrl;
-      if (!kIsWeb && Platform.isAndroid) {
-        
-      }
+      if (!kIsWeb && Platform.isAndroid) {}
 
       final response = await http.post(
         Uri.parse('$baseUrl/users/register'),
@@ -78,11 +84,9 @@ class _SignInPageState extends State<SignInPage> {
 
       if (response.statusCode == 201) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Registration Successful! Please login."),
-              backgroundColor: Colors.green,
-            ),
+          _showTopNotification(
+            "Registration Successful! Please login.",
+            color: Colors.green,
           );
           Navigator.pushReplacement(
             context,
@@ -92,22 +96,12 @@ class _SignInPageState extends State<SignInPage> {
       } else {
         final data = jsonDecode(response.body);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(data['error'] ?? "Registration failed"),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+          _showTopNotification(data['error'] ?? "Registration failed");
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Network error: $e"),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        _showTopNotification("Network error: $e");
       }
     } finally {
       if (mounted) {
@@ -178,12 +172,24 @@ class _SignInPageState extends State<SignInPage> {
                     'Password',
                     _passwordController,
                     isPassword: true,
+                    obscureText: _obscurePassword,
+                    onToggleVisibility: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
                   ),
                   const SizedBox(height: 14),
                   _buildField(
                     'Confirm password',
                     _confirmController,
                     isPassword: true,
+                    obscureText: _obscureConfirmPassword,
+                    onToggleVisibility: () {
+                      setState(() {
+                        _obscureConfirmPassword = !_obscureConfirmPassword;
+                      });
+                    },
                   ),
 
                   const SizedBox(height: 28),
@@ -260,15 +266,28 @@ class _SignInPageState extends State<SignInPage> {
     String hint,
     TextEditingController controller, {
     bool isPassword = false,
+    bool obscureText = false,
+    VoidCallback? onToggleVisibility,
   }) {
     return TextField(
       controller: controller,
-      obscureText: isPassword,
+      obscureText: isPassword ? obscureText : false,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
         filled: true,
         fillColor: Colors.white,
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  obscureText
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: Colors.grey,
+                ),
+                onPressed: onToggleVisibility,
+              )
+            : null,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 18,
           vertical: 18,
@@ -280,6 +299,104 @@ class _SignInPageState extends State<SignInPage> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: _pink, width: 1.5),
+        ),
+      ),
+    );
+  }
+}
+
+class _TopNotificationWidget extends StatefulWidget {
+  final String message;
+  final VoidCallback onDismissed;
+  final Color backgroundColor;
+
+  const _TopNotificationWidget({
+    Key? key,
+    required this.message,
+    required this.onDismissed,
+    this.backgroundColor = Colors.redAccent,
+  }) : super(key: key);
+
+  @override
+  State<_TopNotificationWidget> createState() => _TopNotificationWidgetState();
+}
+
+class _TopNotificationWidgetState extends State<_TopNotificationWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _offsetAnimation = Tween<Offset>(
+      begin: const Offset(0.0, -1.0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+
+    _showAndHide();
+  }
+
+  Future<void> _showAndHide() async {
+    await _controller.forward();
+    await Future.delayed(const Duration(seconds: 3));
+    if (mounted) {
+      await _controller.reverse();
+      widget.onDismissed();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 10,
+      left: 20,
+      right: 20,
+      child: SlideTransition(
+        position: _offsetAnimation,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: widget.backgroundColor,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  widget.backgroundColor == Colors.green
+                      ? Icons.check_circle_outline
+                      : Icons.error_outline,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

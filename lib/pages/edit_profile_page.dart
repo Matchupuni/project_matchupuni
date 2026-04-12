@@ -5,6 +5,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:project_matchupuni/config/api_config.dart';
+import 'welcome_page.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -110,9 +111,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                           try {
                             String baseUrl = ApiConfig.baseUrl;
-                            if (!kIsWeb && Platform.isAndroid) {
-                              
-                            }
+                            if (!kIsWeb && Platform.isAndroid) {}
 
                             final response = await http.put(
                               Uri.parse("$baseUrl/users/$_userId/profile"),
@@ -256,9 +255,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                           try {
                             String baseUrl = ApiConfig.baseUrl;
-                            if (!kIsWeb && Platform.isAndroid) {
-                              
-                            }
+                            if (!kIsWeb && Platform.isAndroid) {}
 
                             final response = await http.put(
                               Uri.parse('$baseUrl/users/$_userId/profile'),
@@ -422,9 +419,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                           try {
                             String baseUrl = ApiConfig.baseUrl;
-                            if (!kIsWeb && Platform.isAndroid) {
-                              
-                            }
+                            if (!kIsWeb && Platform.isAndroid) {}
 
                             final response = await http.put(
                               Uri.parse('$baseUrl/users/$_userId/password'),
@@ -497,7 +492,164 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  // Removed _deleteInfo
+  void _showDeleteAccountDialog() {
+    final _deleteEmailController = TextEditingController();
+    final _deletePasswordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        bool isDialogLoading = false;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              title: const Text(
+                'Delete Account',
+                style: TextStyle(color: Colors.red),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'To delete your account, please enter your email and password to confirm. This action cannot be undone.',
+                    style: TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _deleteEmailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _deletePasswordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isDialogLoading
+                      ? null
+                      : () => Navigator.pop(context),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: isDialogLoading
+                      ? null
+                      : () async {
+                          final email = _deleteEmailController.text.trim();
+                          final pass = _deletePasswordController.text;
+
+                          if (email.isEmpty || pass.isEmpty) {
+                            _showCustomSnackBar(
+                              message: 'Please enter email and password',
+                              isError: true,
+                            );
+                            return;
+                          }
+
+                          if (_userId == null) return;
+
+                          setDialogState(() => isDialogLoading = true);
+
+                          try {
+                            String baseUrl = ApiConfig.baseUrl;
+
+                            final request = http.Request(
+                              'DELETE',
+                              Uri.parse('$baseUrl/users/$_userId'),
+                            );
+                            request.headers['Content-Type'] =
+                                'application/json';
+                            request.body = jsonEncode({
+                              'email': email,
+                              'password': pass,
+                            });
+
+                            final streamedResponse = await request.send();
+                            final response = await http.Response.fromStream(
+                              streamedResponse,
+                            );
+
+                            if (response.statusCode == 200) {
+                              final prefs =
+                                  await SharedPreferences.getInstance();
+                              await prefs.clear(); // Clear all user data
+
+                              if (mounted) {
+                                Navigator.pop(context); // Close dialog
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                    builder: (context) => const WelcomePage(),
+                                  ),
+                                  (route) => false,
+                                );
+                              }
+                            } else {
+                              String errorMessage =
+                                  'Failed to delete account (Error ${response.statusCode})';
+                              try {
+                                final data = jsonDecode(response.body);
+                                if (data['error'] != null) {
+                                  errorMessage = data['error'];
+                                }
+                              } catch (_) {}
+
+                              if (mounted) {
+                                _showCustomSnackBar(
+                                  message: errorMessage,
+                                  isError: true,
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              _showCustomSnackBar(
+                                message: 'Network error: $e',
+                                isError: true,
+                              );
+                            }
+                          } finally {
+                            if (mounted) {
+                              setDialogState(() => isDialogLoading = false);
+                            }
+                          }
+                        },
+                  child: isDialogLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Delete',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
   void _showCustomSnackBar({required String message, required bool isError}) {
     final overlay = Overlay.of(context);
@@ -711,6 +863,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         subtitle: "••••••••",
                         icon: Icons.lock_outline,
                         onTap: _showChangePasswordDialog,
+                      ),
+                      const SizedBox(height: 30),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade50,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                        onPressed: _showDeleteAccountDialog,
+                        child: const Text(
+                          "Delete Account",
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 40),
                     ],

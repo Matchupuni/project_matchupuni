@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'chat_list_page.dart';
+import 'notification_page.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/side_drawer.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../services/saved_service.dart';
 import '../services/chat_api_service.dart';
-import 'competition_detail_page.dart';
+import 'post_detail_page.dart';
 import 'report_page.dart';
 import 'search_page.dart';
 import 'package:project_matchupuni/config/api_config.dart';
@@ -65,6 +65,21 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  String _parseDate(dynamic dateStr) {
+    if (dateStr == null ||
+        dateStr.toString().isEmpty ||
+        dateStr.toString() == 'null') {
+      return "No Date";
+    }
+    try {
+      return DateTime.parse(
+        dateStr.toString(),
+      ).toLocal().toString().substring(0, 10);
+    } catch (e) {
+      return "No Date";
+    }
+  }
+
   Future<void> _fetchCards() async {
     if (mounted) {
       setState(() {
@@ -88,17 +103,24 @@ class _HomePageState extends State<HomePage> {
       if (response.statusCode == 200) {
         if (mounted) {
           setState(() {
-            _cards = json.decode(response.body);
+            final decoded = json.decode(response.body);
+            if (decoded is List) {
+              _cards = decoded;
+            } else {
+              _cards = [];
+            }
             // Sorting
             if (_sortBy == 'Newest') {
               _cards.sort(
-                (a, b) =>
-                    (b['created_at'] ?? '').compareTo(a['created_at'] ?? ''),
+                (a, b) => (b['created_at']?.toString() ?? '').compareTo(
+                  a['created_at']?.toString() ?? '',
+                ),
               );
             } else {
               _cards.sort(
-                (a, b) =>
-                    (a['created_at'] ?? '').compareTo(b['created_at'] ?? ''),
+                (a, b) => (a['created_at']?.toString() ?? '').compareTo(
+                  b['created_at']?.toString() ?? '',
+                ),
               );
             }
             _isLoading = false;
@@ -230,11 +252,11 @@ class _HomePageState extends State<HomePage> {
                             child: Column(
                               children: _cards.map((card) {
                                 final List<String> categories =
-                                    card['tags'] != null
+                                    (card['tags'] is List)
                                     ? List<String>.from(card['tags'])
                                     : [];
                                 final List<String> skillFields =
-                                    card['fields'] != null
+                                    (card['fields'] is List)
                                     ? List<String>.from(card['fields'])
                                     : [];
 
@@ -249,14 +271,7 @@ class _HomePageState extends State<HomePage> {
                                         card['author_profile_image'] ??
                                         _userProfileImg,
                                     posterId: card['author_id']?.toString(),
-                                    date: card['due_date'] != null
-                                        ? DateTime.parse(
-                                            card['due_date'].toString(),
-                                          ).toLocal().toString().substring(
-                                            0,
-                                            10,
-                                          )
-                                        : "No Date",
+                                    date: _parseDate(card['due_date']),
                                     categories: categories,
                                     skillFields: skillFields,
                                     details:
@@ -318,7 +333,7 @@ class _HomePageState extends State<HomePage> {
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ChatListPage(),
+                          builder: (context) => const NotificationPage(),
                         ),
                       );
                       // Refresh unread count when returning
@@ -360,7 +375,7 @@ class _HomePageState extends State<HomePage> {
                     onTap: () {
                       Scaffold.of(context).openEndDrawer();
                     },
-                    child: const Icon(Icons.format_list_bulleted, size: 26),
+                    child: const Icon(Icons.person, size: 26),
                   );
                 },
               ),
@@ -765,10 +780,18 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.grey[200],
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      isSaved ? Icons.bookmark : Icons.bookmark_border,
-                      color: const Color(0xFFE91E63),
-                      size: 20,
+                    child: ValueListenableBuilder<List<SavedItem>>(
+                      valueListenable: SavedService.savedItems,
+                      builder: (context, _, __) {
+                        final currentIsSaved = SavedService.isSaved(postId);
+                        return Icon(
+                          currentIsSaved
+                              ? Icons.bookmark
+                              : Icons.bookmark_border,
+                          color: const Color(0xFFE91E63),
+                          size: 20,
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -890,7 +913,7 @@ class _HomePageState extends State<HomePage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CompetitionDetailPage(
+                  builder: (context) => PostDetailPage(
                     title: title,
                     date: date,
                     tags: [...categories, ...skillFields],

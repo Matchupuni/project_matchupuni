@@ -225,55 +225,51 @@ class _EditPostPageState extends State<EditPostPage> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    _buildToggleButtons(),
-                    const SizedBox(height: 16),
                     _buildPhotoUploadBox(),
                     const SizedBox(height: 20),
                     if (_isActivitySelected) ...[
                       _buildLabelRow(
                         "Name:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _nameController,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _nameController,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Details:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _detailsController,
-                            maxLines: 4,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _detailsController,
+                          maxLines: 4,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Due Date:",
-                        _withRequiredIndicator(_buildDueDateField()),
+                        _buildDueDateField(),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Register:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _registerLinkController,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _registerLinkController,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Contact:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _contactController,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _contactController,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Tags:",
-                        _withRequiredIndicator(_buildTagsRow()),
+                        _buildTagsRow(),
+                        isRequired: true,
                       ),
                     ] else ...[
                       // --- General Info ---
@@ -293,30 +289,30 @@ class _EditPostPageState extends State<EditPostPage> {
                       ),
                       _buildLabelRow(
                         "Name:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _nameController,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _nameController,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Details:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _detailsController,
-                            maxLines: 4,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _detailsController,
+                          maxLines: 4,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Type:",
-                        _withRequiredIndicator(_buildTypeRow()),
+                        _buildTypeRow(),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Due Date:",
-                        _withRequiredIndicator(_buildDueDateField()),
+                        _buildDueDateField(),
+                        isRequired: true,
                       ),
 
                       const Padding(
@@ -348,38 +344,34 @@ class _EditPostPageState extends State<EditPostPage> {
                       ),
                       _buildLabelRow(
                         "Required Skill:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _requiredSkillController,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _requiredSkillController,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Teammates Needed:",
-                        _withRequiredIndicator(
-                          _buildNumberCounter(
-                            controller: _teammatesNeededController,
-                          ),
+                        _buildNumberCounter(
+                          controller: _teammatesNeededController,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Contact:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _contactController,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _contactController,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Register:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _registerLinkController,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _registerLinkController,
                         ),
+                        isRequired: true,
                       ),
                     ],
                     const SizedBox(height: 10),
@@ -398,45 +390,30 @@ class _EditPostPageState extends State<EditPostPage> {
     );
   }
 
-  Widget _buildToggleButtons() {
-    return Container(
-      height: 40,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: const Color(0xFF4A8AF4),
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Center(
-        child: Text(
-          _isActivitySelected ? "Activity" : "Find Teammates",
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildPhotoUploadBox() {
     final bool hasImages =
         _existingNetworkImages.isNotEmpty || _selectedImages.isNotEmpty;
+    final int currentTotal =
+        _existingNetworkImages.length + _selectedImages.length;
 
     return GestureDetector(
-      onTap: !hasImages ? _pickImages : null,
+      onTap: currentTotal < 5 ? _pickImages : null,
       child: Container(
         height: 150,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFFF4F7FC),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFD3DEF5), width: 1.5),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFE2E8F0),
+            width: 1.5,
+            style: BorderStyle.values[1],
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -450,36 +427,31 @@ class _EditPostPageState extends State<EditPostPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              const Icon(Icons.image, size: 50, color: Color(0xFFD3DEF5)),
-              Positioned(
-                top: -5,
-                right: -5,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF4F7FC),
-                    shape: BoxShape.circle,
-                  ),
-                  padding: const EdgeInsets.all(2),
-                  child: const Icon(
-                    Icons.add,
-                    size: 18,
-                    color: Color(0xFFD3DEF5),
-                  ),
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF), // เบาๆ ฟ้าอ่อน
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.cloud_upload_outlined,
+              size: 36,
+              color: Color(0xFF4A8AF4),
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           const Text(
-            "Add Your Photo",
+            "Click to upload photos",
             style: TextStyle(
-              color: Color(0xFF8FA5C1),
+              color: Color(0xFF334155),
               fontWeight: FontWeight.w600,
               fontSize: 14,
             ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            "Max 5 photos (JPG, PNG)",
+            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
           ),
         ],
       ),
@@ -502,7 +474,7 @@ class _EditPostPageState extends State<EditPostPage> {
       itemBuilder: (context, index) {
         if (index == totalImages) {
           return GestureDetector(
-            onTap: _pickImages,
+            onTap: totalImages < 5 ? _pickImages : null,
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -577,28 +549,42 @@ class _EditPostPageState extends State<EditPostPage> {
     );
   }
 
-  Widget _buildLabelRow(String label, Widget child) {
+  Widget _buildLabelRow(String label, Widget child, {bool isRequired = false}) {
+    // If the label ends with ':', let's strip it to look cleaner
+    final String cleanLabel = label.endsWith(':')
+        ? label.substring(0, label.length - 1)
+        : label;
+
     return Padding(
-      padding: const EdgeInsets.only(
-        bottom: 16.0,
-      ), // increased padding for breathing room
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment
-            .center, // center align label and field vertically
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            width: 80, // slightly adjusted width
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: Color(0xFF333333),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
+            child: RichText(
+              text: TextSpan(
+                text: cleanLabel,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  color: Color(0xFF1E293B),
+                ),
+                children: [
+                  if (isRequired)
+                    const TextSpan(
+                      text: ' *',
+                      style: TextStyle(
+                        color: Color(0xFFE91E63),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
-          const SizedBox(width: 12), // gap between label and field
-          Expanded(child: child),
+          child,
         ],
       ),
     );
@@ -611,11 +597,17 @@ class _EditPostPageState extends State<EditPostPage> {
     bool isNumber = false,
   }) {
     return Container(
-      // width: 220, // Removed fixed width to allow expansion
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            offset: const Offset(0, 2),
+            blurRadius: 4,
+          ),
+        ],
       ),
       child: TextField(
         controller: controller,
@@ -624,14 +616,14 @@ class _EditPostPageState extends State<EditPostPage> {
         inputFormatters: isNumber
             ? [FilteringTextInputFormatter.digitsOnly]
             : null,
-        style: const TextStyle(fontSize: 13),
+        style: const TextStyle(fontSize: 15, color: Color(0xFF334155)),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 10,
+            horizontal: 16,
+            vertical: 14,
           ),
         ),
       ),
@@ -640,24 +632,41 @@ class _EditPostPageState extends State<EditPostPage> {
 
   Widget _buildNumberCounter({required TextEditingController controller}) {
     return Container(
-      height: 48,
+      height: 52,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            offset: const Offset(0, 2),
+            blurRadius: 4,
+          ),
+        ],
       ),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.remove, color: Colors.black54),
-            onPressed: () {
-              int currentValue = int.tryParse(controller.text) ?? 1;
-              if (currentValue > 1) {
-                setState(() {
-                  controller.text = (currentValue - 1).toString();
-                });
-              }
-            },
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                bottomLeft: Radius.circular(12),
+              ),
+              onTap: () {
+                int currentValue = int.tryParse(controller.text) ?? 1;
+                if (currentValue > 1) {
+                  setState(() {
+                    controller.text = (currentValue - 1).toString();
+                  });
+                }
+              },
+              child: const Padding(
+                padding: EdgeInsets.all(12.0),
+                child: Icon(Icons.remove, color: Color(0xFFE91E63)),
+              ),
+            ),
           ),
           Expanded(
             child: TextField(
@@ -665,30 +674,44 @@ class _EditPostPageState extends State<EditPostPage> {
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF334155),
+              ),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: "1",
                 hintStyle: TextStyle(
                   color: Colors.grey[400],
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: FontWeight.normal,
                 ),
                 contentPadding: EdgeInsets.zero,
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.black54),
-            onPressed: () {
-              int currentValue = int.tryParse(controller.text) ?? 0;
-              if (currentValue == 0 && controller.text.isEmpty) {
-                currentValue = 1;
-              }
-              setState(() {
-                controller.text = (currentValue + 1).toString();
-              });
-            },
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(12),
+                bottomRight: Radius.circular(12),
+              ),
+              onTap: () {
+                int currentValue = int.tryParse(controller.text) ?? 0;
+                if (currentValue == 0 && controller.text.isEmpty) {
+                  currentValue = 1;
+                }
+                setState(() {
+                  controller.text = (currentValue + 1).toString();
+                });
+              },
+              child: const Padding(
+                padding: EdgeInsets.all(12.0),
+                child: Icon(Icons.add, color: Color(0xFF4A8AF4)),
+              ),
+            ),
           ),
         ],
       ),
@@ -830,39 +853,26 @@ class _EditPostPageState extends State<EditPostPage> {
     );
   }
 
-  // Helper to wrap fields with the '*' next to them based on length
-  Widget _withRequiredIndicator(Widget child) {
-    return Row(
-      // Changed Wrap to Row for better control within the Expanded parent
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(child: child), // Field takes remaining space
-        const SizedBox(width: 8),
-        const Text(
-          '*',
-          style: TextStyle(
-            color: Color(0xFFE91E63),
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildDueDateField() {
     return GestureDetector(
       onTap: () => _selectDate(context),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        height: 52, // Match height of textfields
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              offset: const Offset(0, 2),
+              blurRadius: 4,
+            ),
+          ],
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               _selectedDate == null
@@ -871,12 +881,15 @@ class _EditPostPageState extends State<EditPostPage> {
               style: TextStyle(
                 color: _selectedDate == null
                     ? Colors.grey[400]
-                    : Colors.black87,
-                fontSize: 12,
+                    : const Color(0xFF334155),
+                fontSize: 15,
               ),
             ),
-            const SizedBox(width: 8),
-            const Icon(Icons.calendar_today, color: Colors.black87, size: 16),
+            const Icon(
+              Icons.calendar_today,
+              color: Color(0xFF64748B),
+              size: 20,
+            ),
           ],
         ),
       ),

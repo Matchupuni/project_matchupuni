@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/saved_service.dart';
-import '../pages/competition_detail_page.dart';
+import '../pages/post_detail_page.dart';
 import '../pages/welcome_page.dart';
 import '../pages/edit_profile_page.dart';
 import 'package:project_matchupuni/config/api_config.dart';
@@ -37,7 +37,7 @@ class _SideDrawerState extends State<SideDrawer> {
   Widget build(BuildContext context) {
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.75,
-      backgroundColor: const Color(0xFFFBE8A6), // Yellow background
+      backgroundColor: const Color(0xFFFBE082), // Yellow background
       child: Column(
         children: [
           _buildTopProfile(context),
@@ -376,7 +376,7 @@ class _SideDrawerState extends State<SideDrawer> {
                   navigator.pop(); // Close the drawer
                   navigator.push(
                     MaterialPageRoute(
-                      builder: (context) => CompetitionDetailPage(
+                      builder: (context) => PostDetailPage(
                         title: item.title,
                         date: item.date,
                         tags: item.tags,
@@ -387,6 +387,10 @@ class _SideDrawerState extends State<SideDrawer> {
                         posterName: item.posterName,
                         posterImageUrl: item.posterImageUrl,
                         posterId: item.posterId,
+                        postType: item.postType,
+                        roleNeeded: item.roleNeeded,
+                        teammatesNeeded: item.teammatesNeeded,
+                        requiredSkill: item.requiredSkill,
                       ),
                     ),
                   );

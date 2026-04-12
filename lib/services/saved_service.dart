@@ -17,6 +17,10 @@ class SavedItem {
   final bool isTeam; // To distinguish between Competition and Team
   final Color iconColor;
   final String? imageUrl;
+  final String? postType;
+  final String? roleNeeded;
+  final String? teammatesNeeded;
+  final String? requiredSkill;
   final String? posterName;
   final String? posterImageUrl;
   final String? posterId;
@@ -32,6 +36,10 @@ class SavedItem {
     this.isTeam = false,
     this.iconColor = Colors.blue,
     this.imageUrl,
+    this.postType,
+    this.roleNeeded,
+    this.teammatesNeeded,
+    this.requiredSkill,
     this.posterName,
     this.posterImageUrl,
     this.posterId,
@@ -79,6 +87,10 @@ class SavedService {
                 ? const Color(0xFFE91E63)
                 : const Color(0xFF4A8AF4),
             imageUrl: card['image_path'],
+            postType: card['post_type'],
+            roleNeeded: card['role_needed'],
+            teammatesNeeded: card['teammates_needed']?.toString(),
+            requiredSkill: card['required_skill'],
           );
         }).toList();
 

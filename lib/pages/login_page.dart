@@ -23,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -31,17 +32,33 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  void _showTopNotification(String message) {
+    OverlayEntry? overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) => _TopNotificationWidget(
+        message: message,
+        onDismissed: () {
+          overlayEntry?.remove();
+        },
+      ),
+    );
+
+    Overlay.of(context).insert(overlayEntry);
+  }
+
   Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter both email and password"),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+    if (email.isEmpty && password.isEmpty) {
+      _showTopNotification("Please enter both Email and Password");
+      return;
+    } else if (email.isEmpty) {
+      _showTopNotification("Please enter your Email");
+      return;
+    } else if (password.isEmpty) {
+      _showTopNotification("Please enter your Password");
       return;
     }
 
@@ -51,9 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       String baseUrl = ApiConfig.baseUrl;
-      if (!kIsWeb && Platform.isAndroid) {
-        
-      }
+      if (!kIsWeb && Platform.isAndroid) {}
 
       final response = await http.post(
         Uri.parse('$baseUrl/users/login'),
@@ -181,21 +196,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     isPassword: true,
                   ),
 
-                  // Forgot Password link
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {},
-                      child: Text(
-                        "Forgot Password?",
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
-
                   const SizedBox(height: 15),
 
                   // Login button
@@ -271,14 +271,26 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     return TextField(
       controller: controller,
-      obscureText: isPassword,
+      obscureText: isPassword ? _obscurePassword : false,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.grey.shade500),
         filled: true,
         fillColor: Colors.white,
         suffixIcon: isPassword
-            ? const Icon(Icons.visibility_outlined, color: Colors.grey)
+            ? IconButton(
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: Colors.grey,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+              )
             : null,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -291,6 +303,97 @@ class _LoginScreenState extends State<LoginScreen> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: _pink, width: 1.5),
+        ),
+      ),
+    );
+  }
+}
+
+class _TopNotificationWidget extends StatefulWidget {
+  final String message;
+  final VoidCallback onDismissed;
+
+  const _TopNotificationWidget({
+    Key? key,
+    required this.message,
+    required this.onDismissed,
+  }) : super(key: key);
+
+  @override
+  State<_TopNotificationWidget> createState() => _TopNotificationWidgetState();
+}
+
+class _TopNotificationWidgetState extends State<_TopNotificationWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _offsetAnimation = Tween<Offset>(
+      begin: const Offset(0.0, -1.0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+
+    _showAndHide();
+  }
+
+  Future<void> _showAndHide() async {
+    await _controller.forward();
+    await Future.delayed(const Duration(seconds: 3));
+    if (mounted) {
+      await _controller.reverse();
+      widget.onDismissed();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 10,
+      left: 20,
+      right: 20,
+      child: SlideTransition(
+        position: _offsetAnimation,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.redAccent,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

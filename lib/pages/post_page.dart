@@ -188,48 +188,46 @@ class _PostPageState extends State<PostPage> {
                     if (_isActivitySelected) ...[
                       _buildLabelRow(
                         "Name:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _nameController,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _nameController,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Details:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _detailsController,
-                            maxLines: 4,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _detailsController,
+                          maxLines: 4,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Due Date:",
-                        _withRequiredIndicator(_buildDueDateField()),
+                        _buildDueDateField(),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Register:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _registerLinkController,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _registerLinkController,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Contact:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _contactController,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _contactController,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Tags:",
-                        _withRequiredIndicator(_buildTagsRow()),
+                        _buildTagsRow(),
+                        isRequired: true,
                       ),
                     ] else ...[
                       // --- General Info ---
@@ -249,30 +247,30 @@ class _PostPageState extends State<PostPage> {
                       ),
                       _buildLabelRow(
                         "Name:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _nameController,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _nameController,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Details:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _detailsController,
-                            maxLines: 4,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _detailsController,
+                          maxLines: 4,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Type:",
-                        _withRequiredIndicator(_buildTypeRow()),
+                        _buildTypeRow(),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Due Date:",
-                        _withRequiredIndicator(_buildDueDateField()),
+                        _buildDueDateField(),
+                        isRequired: true,
                       ),
 
                       const Padding(
@@ -304,38 +302,34 @@ class _PostPageState extends State<PostPage> {
                       ),
                       _buildLabelRow(
                         "Required Skill:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _requiredSkillController,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _requiredSkillController,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Teammates Needed:",
-                        _withRequiredIndicator(
-                          _buildNumberCounter(
-                            controller: _teammatesNeededController,
-                          ),
+                        _buildNumberCounter(
+                          controller: _teammatesNeededController,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Contact:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _contactController,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _contactController,
                         ),
+                        isRequired: true,
                       ),
                       _buildLabelRow(
                         "Register:",
-                        _withRequiredIndicator(
-                          _buildTextField(
-                            "Type here....",
-                            controller: _registerLinkController,
-                          ),
+                        _buildTextField(
+                          "Type here....",
+                          controller: _registerLinkController,
                         ),
+                        isRequired: true,
                       ),
                     ],
                     const SizedBox(height: 10),
@@ -574,35 +568,38 @@ class _PostPageState extends State<PostPage> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
-            child: RichText(
-              text: TextSpan(
-                text: cleanLabel,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                  color: Color(0xFF1E293B),
-                ),
-                children: [
-                  if (isRequired)
-                    const TextSpan(
-                      text: ' *',
-                      style: TextStyle(
-                        color: Color(0xFFE91E63),
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
+              child: RichText(
+                text: TextSpan(
+                  text: cleanLabel,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: Color(0xFF1E293B),
+                  ),
+                  children: [
+                    if (isRequired)
+                      const TextSpan(
+                        text: ' *',
+                        style: TextStyle(
+                          color: Color(0xFFE91E63),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          child,
-        ],
+            child,
+          ],
+        ),
       ),
     );
   }
@@ -871,9 +868,6 @@ class _PostPageState extends State<PostPage> {
   }
 
   // Removed redundant asterisk inline - asterisks are better placed next to labels or assumed if all are required
-  Widget _withRequiredIndicator(Widget child) {
-    return child;
-  }
 
   Widget _buildDueDateField() {
     return GestureDetector(

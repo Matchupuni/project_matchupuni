@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../services/saved_service.dart';
 import '../services/search_history_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'competition_detail_page.dart';
+import 'post_detail_page.dart';
 import 'report_page.dart';
 import 'package:project_matchupuni/config/api_config.dart';
 
@@ -708,10 +708,18 @@ class _SearchPageState extends State<SearchPage> {
                         color: Colors.grey[200],
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        isSaved ? Icons.bookmark : Icons.bookmark_border,
-                        color: const Color(0xFFE91E63),
-                        size: 20,
+                      child: ValueListenableBuilder<List<SavedItem>>(
+                        valueListenable: SavedService.savedItems,
+                        builder: (context, _, __) {
+                          final currentIsSaved = SavedService.isSaved(postId);
+                          return Icon(
+                            currentIsSaved
+                                ? Icons.bookmark
+                                : Icons.bookmark_border,
+                            color: const Color(0xFFE91E63),
+                            size: 20,
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -835,7 +843,7 @@ class _SearchPageState extends State<SearchPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => CompetitionDetailPage(
+                    builder: (context) => PostDetailPage(
                       title: title,
                       date: date,
                       tags: [...categories, ...skillFields],
@@ -897,7 +905,7 @@ class _SearchPageState extends State<SearchPage> {
     final String roleDescription = post['details'] ?? 'No Description';
     final String contact = post['contact'] ?? 'No contact info';
     final String? imageUrl = post['image_path'];
-    final String link = post['register_link'] ?? 'N/A';
+    final String link = post['register_link'] ?? '';
     final String requiredSkill =
         post['required_skill']?.toString() ?? 'Any Skill';
 
@@ -1043,10 +1051,18 @@ class _SearchPageState extends State<SearchPage> {
                         color: Colors.grey[200],
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        isSaved ? Icons.bookmark : Icons.bookmark_border,
-                        color: const Color(0xFFE91E63),
-                        size: 20,
+                      child: ValueListenableBuilder<List<SavedItem>>(
+                        valueListenable: SavedService.savedItems,
+                        builder: (context, _, __) {
+                          final currentIsSaved = SavedService.isSaved(postId);
+                          return Icon(
+                            currentIsSaved
+                                ? Icons.bookmark
+                                : Icons.bookmark_border,
+                            color: const Color(0xFFE91E63),
+                            size: 20,
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -1181,7 +1197,7 @@ class _SearchPageState extends State<SearchPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => CompetitionDetailPage(
+                    builder: (context) => PostDetailPage(
                       title: title,
                       date: postedDate,
                       tags: allTags,

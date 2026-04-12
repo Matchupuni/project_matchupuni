@@ -374,336 +374,297 @@ class _MyPostsPageState extends State<MyPostsPage> {
   }) {
     final isSaved = SavedService.isSaved(id);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GestureDetector(
-        onTap: _isSelectionMode
-            ? () {
-                setState(() {
-                  if (_selectedIds.contains(id)) {
-                    _selectedIds.remove(id);
-                  } else {
-                    _selectedIds.add(id);
-                  }
-                });
-              }
-            : null,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          foregroundDecoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: _isSelectionMode && _selectedIds.contains(id)
-                ? Border.all(color: const Color(0xFFE91E63), width: 2)
-                : null,
-          ),
-          clipBehavior: Clip.hardEdge,
-          child: Stack(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Image Preview at the top with Date Badge
-                  Stack(
-                    children: [
-                      fullCardData['image_path'] != null &&
-                              fullCardData['image_path'].toString().isNotEmpty
-                          ? Image.network(
-                              '${ApiConfig.baseUrl}${fullCardData['image_path'].toString().split(',').first}',
-                              height: 140,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Image.asset(
-                                  'assets/competition_preview.png',
-                                  height: 140,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                );
-                              },
-                            )
-                          : Image.asset(
-                              'assets/competition_preview.png',
-                              height: 140,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
+    return GestureDetector(
+      onTap: _isSelectionMode
+          ? () {
+              setState(() {
+                if (_selectedIds.contains(id)) {
+                  _selectedIds.remove(id);
+                } else {
+                  _selectedIds.add(id);
+                }
+              });
+            }
+          : null,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        foregroundDecoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: _isSelectionMode && _selectedIds.contains(id)
+              ? Border.all(color: const Color(0xFFE91E63), width: 2)
+              : null,
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Image Preview at the top with Date Badge
+                Stack(
+                  children: [
+                    fullCardData['image_path'] != null &&
+                            fullCardData['image_path'].toString().isNotEmpty
+                        ? Image.network(
+                            '${ApiConfig.baseUrl}${fullCardData['image_path'].toString().split(',').first}',
+                            height: 140,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset(
+                                'assets/competition_preview.png',
+                                height: 140,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              );
+                            },
+                          )
+                        : Image.asset(
+                            'assets/competition_preview.png',
+                            height: 140,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.calendar_today,
+                              size: 12,
+                              color: Colors.white,
                             ),
-                      Positioned(
-                        top: 12,
-                        right: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.6),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.calendar_today,
-                                size: 12,
+                            const SizedBox(width: 6),
+                            Text(
+                              date,
+                              style: const TextStyle(
                                 color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                date,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Small Status Badge to indicate it's your post
+                    Positioned(
+                      bottom: 12,
+                      left: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              size: 14,
+                              color: Color(0xFF4CAF50),
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              "Active Post",
+                              style: TextStyle(
+                                color: Color(0xFF4CAF50),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
                               ),
-                            ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2C3246),
                           ),
                         ),
                       ),
-                      // Small Status Badge to indicate it's your post
-                      Positioned(
-                        bottom: 12,
-                        left: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.check_circle,
-                                size: 14,
-                                color: Color(0xFF4CAF50),
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                "Active Post",
-                                style: TextStyle(
-                                  color: Color(0xFF4CAF50),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                      if (!_isSelectionMode)
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              SavedService.toggleSave(
+                                SavedItem(
+                                  id: id,
+                                  title: title,
+                                  date: date,
+                                  tags: [...categories, ...skillFields],
+                                  details: details,
+                                  link: link,
+                                  contact: contact,
+                                  isTeam: false,
+                                  iconColor: const Color(0xFF4A8AF4),
+                                  imageUrl: fullCardData['image_path'],
                                 ),
-                              ),
-                            ],
+                                _userId,
+                              );
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isSaved ? Icons.bookmark : Icons.bookmark_border,
+                              color: const Color(0xFFE91E63),
+                              size: 20,
+                            ),
                           ),
+                        ),
+                    ],
+                  ),
+                ),
+                // Poster Avatar and Name
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 10,
+                        backgroundColor: Colors.purple[100],
+                        child: const Icon(
+                          Icons.person,
+                          size: 14,
+                          color: Colors.purple,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        posterName,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[700],
                         ),
                       ),
                     ],
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2C3246),
-                            ),
-                          ),
-                        ),
-                        if (!_isSelectionMode)
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                SavedService.toggleSave(
-                                  SavedItem(
-                                    id: id,
-                                    title: title,
-                                    date: date,
-                                    tags: [...categories, ...skillFields],
-                                    details: details,
-                                    link: link,
-                                    contact: contact,
-                                    isTeam: false,
-                                    iconColor: const Color(0xFF4A8AF4),
-                                    imageUrl: fullCardData['image_path'],
-                                  ),
-                                  _userId,
-                                );
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                isSaved
-                                    ? Icons.bookmark
-                                    : Icons.bookmark_border,
-                                color: const Color(0xFFE91E63),
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  // Poster Avatar and Name
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 10,
-                          backgroundColor: Colors.purple[100],
-                          child: const Icon(
-                            Icons.person,
-                            size: 14,
-                            color: Colors.purple,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          posterName,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                ),
 
-                  const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-                  // Categories and Skill Fields
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        ...categories.map(
-                          (tag) => _buildTag(tag, const Color(0xFF4A8AF4)),
-                        ), // Blue for Categories
-                        ...skillFields.map(
-                          (field) => _buildTag(field, const Color(0xFF4CAF50)),
-                        ), // Green for Skill Fields
-                      ],
-                    ),
+                // Categories and Skill Fields
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      ...categories.map(
+                        (tag) => _buildTag(tag, const Color(0xFF4A8AF4)),
+                      ), // Blue for Categories
+                      ...skillFields.map(
+                        (field) => _buildTag(field, const Color(0xFF4CAF50)),
+                      ), // Green for Skill Fields
+                    ],
                   ),
-                  const SizedBox(height: 12),
+                ),
+                const SizedBox(height: 12),
 
-                  // Details Preview (to match TeamPage height footprint)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.info_outline,
-                              size: 16,
-                              color: Color(0xFFE91E63),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                details.isNotEmpty
-                                    ? details
-                                    : "No details available.",
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey[700],
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12), // Spacer below details
-                  // Bottom Banner (Edit or Selection overlay)
-                  if (!_isSelectionMode)
-                    GestureDetector(
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                EditPostPage(cardData: fullCardData),
-                          ),
-                        );
-                        if (result == true) {
-                          _fetchCards();
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE91E63),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.edit, color: Colors.white, size: 16),
-                            SizedBox(width: 8),
-                            Text(
-                              "Edit Post",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: _selectedIds.contains(id)
-                            ? const Color(0xFFE91E63)
-                            : Colors.grey[300],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                // Details Preview (to match TeamPage height footprint)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            _selectedIds.contains(id)
-                                ? Icons.check_circle
-                                : Icons.circle_outlined,
-                            color: Colors.white,
+                          const Icon(
+                            Icons.info_outline,
                             size: 16,
+                            color: Color(0xFFE91E63),
                           ),
                           const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              details.isNotEmpty
+                                  ? details
+                                  : "No details available.",
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[700],
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12), // Spacer below details
+                // Bottom Banner (Edit or Selection overlay)
+                if (!_isSelectionMode)
+                  GestureDetector(
+                    onTap: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              EditPostPage(cardData: fullCardData),
+                        ),
+                      );
+                      if (result == true) {
+                        _fetchCards();
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: const BoxDecoration(color: Color(0xFFE91E63)),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.edit, color: Colors.white, size: 16),
+                          SizedBox(width: 8),
                           Text(
-                            _selectedIds.contains(id)
-                                ? "Selected"
-                                : "Select Post",
-                            style: const TextStyle(
+                            "Edit Post",
+                            style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -712,10 +673,42 @@ class _MyPostsPageState extends State<MyPostsPage> {
                         ],
                       ),
                     ),
-                ],
-              ),
-            ],
-          ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _selectedIds.contains(id)
+                          ? const Color(0xFFE91E63)
+                          : Colors.grey[300],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _selectedIds.contains(id)
+                              ? Icons.check_circle
+                              : Icons.circle_outlined,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _selectedIds.contains(id)
+                              ? "Selected"
+                              : "Select Post",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -736,325 +729,290 @@ class _MyPostsPageState extends State<MyPostsPage> {
     required String requiredSkill,
     required Map<String, dynamic> fullCardData,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GestureDetector(
-        onTap: _isSelectionMode
-            ? () {
-                setState(() {
-                  if (_selectedIds.contains(id)) {
-                    _selectedIds.remove(id);
-                  } else {
-                    _selectedIds.add(id);
-                  }
-                });
-              }
-            : null,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          foregroundDecoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: _isSelectionMode && _selectedIds.contains(id)
-                ? Border.all(color: const Color(0xFFE91E63), width: 2)
-                : null,
-          ),
-          clipBehavior: Clip.hardEdge,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Image Preview
-              Stack(
-                children: [
-                  if (imageUrl != null && imageUrl.isNotEmpty)
-                    Image.network(
-                      '${ApiConfig.baseUrl}${imageUrl.split(',').first}',
-                      height: 140,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 140,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFE8F0FE),
-                            image: DecorationImage(
-                              image: AssetImage(
-                                'assets/competition_preview.png',
-                              ),
-                              fit: BoxFit.cover,
-                            ),
+    return GestureDetector(
+      onTap: _isSelectionMode
+          ? () {
+              setState(() {
+                if (_selectedIds.contains(id)) {
+                  _selectedIds.remove(id);
+                } else {
+                  _selectedIds.add(id);
+                }
+              });
+            }
+          : null,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        foregroundDecoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: _isSelectionMode && _selectedIds.contains(id)
+              ? Border.all(color: const Color(0xFFE91E63), width: 2)
+              : null,
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Image Preview
+            Stack(
+              children: [
+                if (imageUrl != null && imageUrl.isNotEmpty)
+                  Image.network(
+                    '${ApiConfig.baseUrl}${imageUrl.split(',').first}',
+                    height: 140,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 140,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFE8F0FE),
+                          image: DecorationImage(
+                            image: AssetImage('assets/competition_preview.png'),
+                            fit: BoxFit.cover,
                           ),
-                        );
-                      },
-                    )
-                  else
-                    Container(
-                      height: 140,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE8F0FE),
-                        image: DecorationImage(
-                          image: AssetImage('assets/competition_preview.png'),
-                          fit: BoxFit.cover,
                         ),
-                      ),
-                    ),
-                  // Date Badge
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.calendar_today,
-                            size: 12,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            postedDate,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
+                      );
+                    },
+                  )
+                else
+                  Container(
+                    height: 140,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE8F0FE),
+                      image: DecorationImage(
+                        image: AssetImage('assets/competition_preview.png'),
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),
-                  // Active Post Badge
-                  Positioned(
-                    bottom: 12,
-                    left: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 14,
+                // Date Badge
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.calendar_today,
+                          size: 12,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          postedDate,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Active Post Badge
+                Positioned(
+                  bottom: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          size: 14,
+                          color: Color(0xFF4CAF50),
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          "Active Post",
+                          style: TextStyle(
                             color: Color(0xFF4CAF50),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
                           ),
-                          SizedBox(width: 4),
-                          Text(
-                            "Active Post",
-                            style: TextStyle(
-                              color: Color(0xFF4CAF50),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2C3246),
                       ),
                     ),
                   ),
                 ],
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2C3246),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            ),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 10,
-                      backgroundColor: Colors.purple[100],
-                      child: const Icon(
-                        Icons.person,
-                        size: 14,
-                        color: Colors.purple,
-                      ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 10,
+                    backgroundColor: Colors.purple[100],
+                    child: const Icon(
+                      Icons.person,
+                      size: 14,
+                      color: Colors.purple,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      posterName,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[700],
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Tags
-              if (tags.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: tags
-                        .map((tag) => _buildTag(tag, const Color(0xFF4A8AF4)))
-                        .toList(),
                   ),
-                ),
-              if (tags.isNotEmpty) const SizedBox(height: 12),
+                  const SizedBox(width: 8),
+                  Text(
+                    posterName,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[700],
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
 
-              // Role and Teammates with Icons
+            // Tags
+            if (tags.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment
-                          .start, // Align to top for multi-line support
-                      children: [
-                        const Icon(
-                          Icons
-                              .psychology, // Changed from star to psychology to match competition_detail
-                          size: 16,
-                          color: Color(0xFFE91E63),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            "Required Skill: $requiredSkill",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[700],
-                              fontSize: 13,
-                              height: 1.4, // Line height for multi-line string
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment
-                          .start, // Align to top for multi-line support
-                      children: [
-                        const Icon(
-                          Icons
-                              .group, // Changed group icon style setup to top aligned
-                          size: 16,
-                          color: Color(0xFFE91E63),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            "Teammates Needed: $personCount",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[700],
-                              fontSize: 13,
-                              height: 1.4,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: tags
+                      .map((tag) => _buildTag(tag, const Color(0xFF4A8AF4)))
+                      .toList(),
                 ),
               ),
-              const SizedBox(height: 12),
+            if (tags.isNotEmpty) const SizedBox(height: 12),
 
-              // Bottom Banner (Edit or Selection overlay)
-              if (!_isSelectionMode)
-                GestureDetector(
-                  onTap: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            EditPostPage(cardData: fullCardData),
-                      ),
-                    );
-                    if (result == true) {
-                      _fetchCards();
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: const BoxDecoration(color: Color(0xFFE91E63)),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.edit, color: Colors.white, size: 16),
-                        SizedBox(width: 8),
-                        Text(
-                          "Edit Post",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: _selectedIds.contains(id)
-                        ? const Color(0xFFE91E63)
-                        : Colors.grey[300],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+            // Role and Teammates with Icons
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment
+                        .start, // Align to top for multi-line support
                     children: [
-                      Icon(
-                        _selectedIds.contains(id)
-                            ? Icons.check_circle
-                            : Icons.circle_outlined,
-                        color: Colors.white,
+                      const Icon(
+                        Icons
+                            .psychology, // Changed from star to psychology to match competition_detail
                         size: 16,
+                        color: Color(0xFFE91E63),
                       ),
                       const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Required Skill: $requiredSkill",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[700],
+                            fontSize: 13,
+                            height: 1.4, // Line height for multi-line string
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment
+                        .start, // Align to top for multi-line support
+                    children: [
+                      const Icon(
+                        Icons
+                            .group, // Changed group icon style setup to top aligned
+                        size: 16,
+                        color: Color(0xFFE91E63),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Teammates Needed: $personCount",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[700],
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Bottom Banner (Edit or Selection overlay)
+            if (!_isSelectionMode)
+              GestureDetector(
+                onTap: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          EditPostPage(cardData: fullCardData),
+                    ),
+                  );
+                  if (result == true) {
+                    _fetchCards();
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: const BoxDecoration(color: Color(0xFFE91E63)),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.edit, color: Colors.white, size: 16),
+                      SizedBox(width: 8),
                       Text(
-                        _selectedIds.contains(id) ? "Selected" : "Select Post",
-                        style: const TextStyle(
+                        "Edit Post",
+                        style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
@@ -1063,8 +1021,38 @@ class _MyPostsPageState extends State<MyPostsPage> {
                     ],
                   ),
                 ),
-            ],
-          ),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _selectedIds.contains(id)
+                      ? const Color(0xFFE91E63)
+                      : Colors.grey[300],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _selectedIds.contains(id)
+                          ? Icons.check_circle
+                          : Icons.circle_outlined,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _selectedIds.contains(id) ? "Selected" : "Select Post",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ),
       ),
     );

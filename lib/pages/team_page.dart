@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'chat_list_page.dart';
+import 'notification_page.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/chat_api_service.dart';
 import '../widgets/side_drawer.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../services/saved_service.dart';
-import 'competition_detail_page.dart';
+import 'post_detail_page.dart';
 import 'report_page.dart';
 import 'search_page.dart';
 import 'package:project_matchupuni/config/api_config.dart';
@@ -32,6 +32,21 @@ class _TeamPageState extends State<TeamPage> {
   String _userFullName = "";
   String? _userId;
   int _unreadChatCount = 0;
+
+  String _parseDate(dynamic dateStr) {
+    if (dateStr == null ||
+        dateStr.toString().isEmpty ||
+        dateStr.toString() == 'null') {
+      return "No Date";
+    }
+    try {
+      return DateTime.parse(
+        dateStr.toString(),
+      ).toLocal().toString().substring(0, 10);
+    } catch (e) {
+      return "No Date";
+    }
+  }
 
   @override
   void initState() {
@@ -84,17 +99,24 @@ class _TeamPageState extends State<TeamPage> {
       if (response.statusCode == 200) {
         if (mounted) {
           setState(() {
-            _teamPosts = json.decode(response.body);
+            final decoded = json.decode(response.body);
+            if (decoded is List) {
+              _teamPosts = decoded;
+            } else {
+              _teamPosts = [];
+            }
             // Sorting
             if (_sortBy == 'Newest') {
               _teamPosts.sort(
-                (a, b) =>
-                    (b['created_at'] ?? '').compareTo(a['created_at'] ?? ''),
+                (a, b) => (b['created_at']?.toString() ?? '').compareTo(
+                  a['created_at']?.toString() ?? '',
+                ),
               );
             } else {
               _teamPosts.sort(
-                (a, b) =>
-                    (a['created_at'] ?? '').compareTo(b['created_at'] ?? ''),
+                (a, b) => (a['created_at']?.toString() ?? '').compareTo(
+                  b['created_at']?.toString() ?? '',
+                ),
               );
             }
             _isLoading = false;
@@ -190,7 +212,6 @@ class _TeamPageState extends State<TeamPage> {
                                 )
                               : const SizedBox(
                                   key: ValueKey('collapsed_filters'),
-                                  width: double.infinity,
                                 ),
                         ),
                         const SizedBox(height: 10),
@@ -219,11 +240,11 @@ class _TeamPageState extends State<TeamPage> {
                             child: Column(
                               children: _teamPosts.map((post) {
                                 final List<String> categories =
-                                    post['fields'] != null
+                                    (post['fields'] is List)
                                     ? List<String>.from(post['fields'])
                                     : [];
                                 final List<String> allTags = [];
-                                if (post['tags'] != null) {
+                                if (post['tags'] is List) {
                                   allTags.addAll(
                                     List<String>.from(post['tags']),
                                   );
@@ -240,14 +261,7 @@ class _TeamPageState extends State<TeamPage> {
                                     posterImageUrl:
                                         post['author_profile_image'],
                                     posterId: post['author_id']?.toString(),
-                                    postedDate: post['due_date'] != null
-                                        ? DateTime.parse(
-                                            post['due_date'].toString(),
-                                          ).toLocal().toString().substring(
-                                            0,
-                                            10,
-                                          )
-                                        : "No Date",
+                                    postedDate: _parseDate(post['due_date']),
                                     personCount:
                                         '${post['teammates_needed'] ?? "?"} People',
                                     roleCategory:
@@ -319,7 +333,7 @@ class _TeamPageState extends State<TeamPage> {
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ChatListPage(),
+                          builder: (context) => const NotificationPage(),
                         ),
                       );
                       // Refresh unread count when returning
@@ -361,7 +375,7 @@ class _TeamPageState extends State<TeamPage> {
                     onTap: () {
                       Scaffold.of(context).openEndDrawer();
                     },
-                    child: const Icon(Icons.format_list_bulleted, size: 26),
+                    child: const Icon(Icons.person, size: 26),
                   );
                 },
               ),
@@ -778,12 +792,18 @@ class _TeamPageState extends State<TeamPage> {
                       color: Colors.grey[200],
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      isSaved ? Icons.bookmark : Icons.bookmark_border,
-                      color: isSaved
-                          ? const Color(0xFFE91E63)
-                          : const Color(0xFFE91E63),
-                      size: 20,
+                    child: ValueListenableBuilder<List<SavedItem>>(
+                      valueListenable: SavedService.savedItems,
+                      builder: (context, _, __) {
+                        final currentIsSaved = SavedService.isSaved(postId);
+                        return Icon(
+                          currentIsSaved
+                              ? Icons.bookmark
+                              : Icons.bookmark_border,
+                          color: const Color(0xFFE91E63),
+                          size: 20,
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -914,7 +934,7 @@ class _TeamPageState extends State<TeamPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CompetitionDetailPage(
+                  builder: (context) => PostDetailPage(
                     title: title,
                     date: postedDate,
                     tags: tags,
