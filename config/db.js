@@ -5,10 +5,7 @@ const hasDatabaseUrl = !!process.env.DATABASE_URL;
 const hasLocalDbParams = !!(process.env.DB_HOST && process.env.DB_USER && process.env.DB_DATABASE);
 
 if (!hasDatabaseUrl && !hasLocalDbParams) {
-  console.error('❌ FATAL ERROR: Database environment variables are missing!');
-  console.error('👉 Please provide either DATABASE_URL (for Dokku/Heroku)');
-  console.error('👉 Or DB_HOST, DB_USER, DB_DATABASE, DB_PASSWORD, DB_PORT (for local)');
-  process.exit(1);
+  console.warn('⚠️ WARNING: Database environment variables are missing (this is normal during Docker build phase).');
 }
 
 const pool = new Pool(
