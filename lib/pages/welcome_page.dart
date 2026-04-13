@@ -18,8 +18,6 @@ class WelcomePage extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-
-
             // ── Main content ────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 28.0),
@@ -75,7 +73,10 @@ class WelcomePage extends StatelessWidget {
                       ),
                       child: const Text(
                         'Login',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -97,14 +98,17 @@ class WelcomePage extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black87,
-                        side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                        side: BorderSide(
+                          color: Colors.grey.shade300,
+                          width: 1.5,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         elevation: 0,
                       ),
                       child: const Text(
-                        'Sign-in',
+                        'Register',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -123,6 +127,4 @@ class WelcomePage extends StatelessWidget {
       ),
     );
   }
-
-
 }

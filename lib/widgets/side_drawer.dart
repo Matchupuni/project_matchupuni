@@ -441,14 +441,21 @@ class _SideDrawerState extends State<SideDrawer> {
           ),
           elevation: 0,
         ),
-        onPressed: () {
+        onPressed: () async {
+          // Clear authentication data
+          final prefs = await SharedPreferences.getInstance();
+          await prefs
+              .clear(); // Or remove specific keys like 'auth_token', 'user_id'
+
           // Safely capture the navigator before popping the drawer
-          final navigator = Navigator.of(context);
-          navigator.pop();
-          navigator.pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const WelcomePage()),
-            (route) => false,
-          );
+          if (context.mounted) {
+            final navigator = Navigator.of(context);
+            navigator.pop();
+            navigator.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const WelcomePage()),
+              (route) => false,
+            );
+          }
         },
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

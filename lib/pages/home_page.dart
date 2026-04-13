@@ -10,6 +10,7 @@ import '../services/chat_api_service.dart';
 import 'post_detail_page.dart';
 import 'report_page.dart';
 import 'search_page.dart';
+import 'welcome_page.dart';
 import 'package:project_matchupuni/config/api_config.dart';
 
 class HomePage extends StatefulWidget {
@@ -55,6 +56,17 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadUser() async {
     final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+
+    if (token == null || token.isEmpty) {
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const WelcomePage()),
+        );
+      }
+      return;
+    }
+
     setState(() {
       _userId = prefs.getString('user_id');
       _userFullName = prefs.getString('user_full_name') ?? 'Guest';

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'home_page.dart';
+import 'welcome_page.dart';
 
 class LoadingPage extends StatefulWidget {
   const LoadingPage({super.key});
@@ -13,14 +15,27 @@ class _LoadingPageState extends State<LoadingPage> {
   @override
   void initState() {
     super.initState();
-    // Navigate to Home Page after 2 seconds
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    // Navigate to next page after minimum delay
+    await Future.delayed(const Duration(seconds: 2));
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+
+    if (mounted) {
+      if (token != null && token.isNotEmpty) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const HomePage()),
         );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const WelcomePage()),
+        );
       }
-    });
+    }
   }
 
   @override

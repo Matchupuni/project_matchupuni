@@ -5,7 +5,7 @@ class ApiConfig {
   // Toggle this boolean to switch between the IP and localhost
   static const bool useLocalhost = false;
 
-  static const String _defaultIp = 'https://matchpuni.app.chanakancloud.net';
+  static const String _defaultIp = 'https://matchupuni.app.chanakancloud.net';
 
   static String get baseUrl {
     if (!useLocalhost) {
