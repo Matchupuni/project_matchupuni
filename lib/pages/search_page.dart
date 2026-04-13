@@ -851,6 +851,7 @@ class _SearchPageState extends State<SearchPage> {
                       link: link,
                       contact: contact,
                       imageUrl: imageUrl,
+                      postType: 'activity',
                       posterName: posterName,
                       posterImageUrl: posterImageUrl,
                       posterId: posterId,

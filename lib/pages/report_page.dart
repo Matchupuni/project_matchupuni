@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../config/api_config.dart';
 
 class ReportPage extends StatefulWidget {
   final String postTitle;
@@ -176,20 +180,65 @@ class _ReportPageState extends State<ReportPage> {
   }
 
   Future<void> _submitReport() async {
+    if (_selectedReason == null) {
+      _showCustomSnackBar(
+        message: "Please select a reason for reporting.",
+        isError: true,
+      );
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
     });
 
-    // Simulate API call to backend (could send to /reports on the Node server)
-    await Future.delayed(const Duration(seconds: 1));
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
 
-    if (mounted) {
-      _showCustomSnackBar(
-        message: "Report submitted. Admin will review this post soon.",
-        isError: false,
+    final reasonText = _detailsController.text.isNotEmpty
+        ? '$_selectedReason: ${_detailsController.text}'
+        : _selectedReason;
+
+    try {
+      final uri = Uri.parse('${ApiConfig.baseUrl}/reports');
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'reporter_id': userId,
+          'target_id': widget.postId,
+          'report_reason': reasonText,
+          'report_type': 'post',
+        }),
       );
-      // Go back to the previous screen
-      Navigator.pop(context);
+
+      if (mounted) {
+        if (response.statusCode == 201) {
+          _showCustomSnackBar(
+            message: "Report submitted. Admin will review this post soon.",
+            isError: false,
+          );
+          Navigator.pop(context);
+        } else {
+          _showCustomSnackBar(
+            message: "Failed to submit report. Please try again.",
+            isError: true,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _showCustomSnackBar(
+          message: "Cannot connect to server.",
+          isError: true,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 

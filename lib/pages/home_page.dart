@@ -933,6 +933,7 @@ class _HomePageState extends State<HomePage> {
                     link: link,
                     contact: contact,
                     imageUrl: imageUrl,
+                    postType: 'activity',
                     posterName: posterName,
                     posterImageUrl: posterImageUrl,
                     posterId: posterId,
