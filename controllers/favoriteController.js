@@ -8,16 +8,20 @@ const getUserFavorites = async (req, res) => {
     const query = `
       SELECT 
         p.*, 
+        u.id AS author_id,
+        u.full_name AS author_name,
+        u.profile_img AS author_profile_image,
         COALESCE(array_remove(array_agg(DISTINCT t.tag_name), NULL), '{}') AS tags,
         COALESCE(array_remove(array_agg(DISTINCT f.field_name), NULL), '{}') AS fields
       FROM posts p
       INNER JOIN favorites fav ON p.id = fav.post_id
+      LEFT JOIN users u ON p.author_id = u.id
       LEFT JOIN post_tags pt ON p.id = pt.post_id
       LEFT JOIN tags t ON pt.tag_id = t.id
       LEFT JOIN post_fields pf ON p.id = pf.post_id
       LEFT JOIN fields f ON pf.field_id = f.id
       WHERE fav.user_id = $1
-      GROUP BY p.id, fav.created_at
+      GROUP BY p.id, u.id, u.full_name, u.profile_img, fav.created_at
       ORDER BY fav.created_at DESC
     `;
     
