@@ -1,6 +1,38 @@
 const pool = require('../config/db');
 const { generateCuid2 } = require('../utils/idGenerator');
 
+
+const insertTagsAndFields = async (client, postId, tags, fields) => {
+  if (tags && Array.isArray(tags)) {
+    for (const tagName of tags) {
+      let tagRes = await client.query('SELECT id FROM tags WHERE tag_name = $1', [tagName]);
+      let tagId;
+      if (tagRes.rows.length > 0) {
+        tagId = tagRes.rows[0].id;
+      } else {
+        const newTagRes = await client.query('INSERT INTO tags (tag_name) VALUES ($1) RETURNING id', [tagName]);
+        tagId = newTagRes.rows[0].id;
+      }
+      await client.query('INSERT INTO post_tags (post_id, tag_id) VALUES ($1, $2)', [postId, tagId]);
+    }
+  }
+
+  if (fields && Array.isArray(fields)) {
+    for (const fieldName of fields) {
+      let fieldRes = await client.query('SELECT id FROM fields WHERE field_name = $1', [fieldName]);
+      let fieldId;
+      if (fieldRes.rows.length > 0) {
+        fieldId = fieldRes.rows[0].id;
+      } else {
+        const newFieldRes = await client.query('INSERT INTO fields (field_name) VALUES ($1) RETURNING id', [fieldName]);
+        fieldId = newFieldRes.rows[0].id;
+      }
+      await client.query('INSERT INTO post_fields (post_id, field_id) VALUES ($1, $2)', [postId, fieldId]);
+    }
+  }
+};
+
+
 const getPosts = async (req, res) => {
   try {
     const { tag, field, post_type, search } = req.query;
@@ -93,36 +125,7 @@ const createPost = async (req, res) => {
     );
     
     const insertedPost = result.rows[0];
-
-    // Insert tags
-    if (tags && Array.isArray(tags)) {
-      for (const tagName of tags) {
-        let tagRes = await client.query('SELECT id FROM tags WHERE tag_name = $1', [tagName]);
-        let tagId;
-        if (tagRes.rows.length > 0) {
-          tagId = tagRes.rows[0].id;
-        } else {
-          const newTagRes = await client.query('INSERT INTO tags (tag_name) VALUES ($1) RETURNING id', [tagName]);
-          tagId = newTagRes.rows[0].id;
-        }
-        await client.query('INSERT INTO post_tags (post_id, tag_id) VALUES ($1, $2)', [id, tagId]);
-      }
-    }
-
-    // Insert fields
-    if (fields && Array.isArray(fields)) {
-      for (const fieldName of fields) {
-        let fieldRes = await client.query('SELECT id FROM fields WHERE field_name = $1', [fieldName]);
-        let fieldId;
-        if (fieldRes.rows.length > 0) {
-          fieldId = fieldRes.rows[0].id;
-        } else {
-          const newFieldRes = await client.query('INSERT INTO fields (field_name) VALUES ($1) RETURNING id', [fieldName]);
-          fieldId = newFieldRes.rows[0].id;
-        }
-        await client.query('INSERT INTO post_fields (post_id, field_id) VALUES ($1, $2)', [id, fieldId]);
-      }
-    }
+    await insertTagsAndFields(client, id, tags, fields);
 
     await client.query('COMMIT');
     res.status(201).json(insertedPost);
@@ -176,36 +179,7 @@ const updatePost = async (req, res) => {
     // Reset tags and fields for this post
     await client.query('DELETE FROM post_tags WHERE post_id = $1', [id]);
     await client.query('DELETE FROM post_fields WHERE post_id = $1', [id]);
-
-    // Insert new tags
-    if (tags && Array.isArray(tags)) {
-      for (const tagName of tags) {
-        let tagRes = await client.query('SELECT id FROM tags WHERE tag_name = $1', [tagName]);
-        let tagId;
-        if (tagRes.rows.length > 0) {
-          tagId = tagRes.rows[0].id;
-        } else {
-          const newTagRes = await client.query('INSERT INTO tags (tag_name) VALUES ($1) RETURNING id', [tagName]);
-          tagId = newTagRes.rows[0].id;
-        }
-        await client.query('INSERT INTO post_tags (post_id, tag_id) VALUES ($1, $2)', [id, tagId]);
-      }
-    }
-
-    // Insert new fields
-    if (fields && Array.isArray(fields)) {
-      for (const fieldName of fields) {
-        let fieldRes = await client.query('SELECT id FROM fields WHERE field_name = $1', [fieldName]);
-        let fieldId;
-        if (fieldRes.rows.length > 0) {
-          fieldId = fieldRes.rows[0].id;
-        } else {
-          const newFieldRes = await client.query('INSERT INTO fields (field_name) VALUES ($1) RETURNING id', [fieldName]);
-          fieldId = newFieldRes.rows[0].id;
-        }
-        await client.query('INSERT INTO post_fields (post_id, field_id) VALUES ($1, $2)', [id, fieldId]);
-      }
-    }
+    await insertTagsAndFields(client, id, tags, fields);
 
     await client.query('COMMIT');
     res.status(200).json(updatedPost);
