@@ -34,6 +34,16 @@ app.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('🔥 [Unhandled Error]:', err.stack || err.message || err);
+  
+  res.status(err.status || 500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
+  });
+});
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
