@@ -27,7 +27,7 @@ const getMessages = async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 };
 
@@ -48,7 +48,7 @@ const sendMessage = async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 };
 
@@ -62,7 +62,7 @@ const getUnreadCount = async (req, res) => {
     res.json({ unread_count: parseInt(result.rows[0].unread_count, 10) });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 };
 
@@ -101,7 +101,7 @@ const getChatList = async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error("Error in getChatList:", error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 };
 

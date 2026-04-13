@@ -68,7 +68,7 @@ const getPosts = async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 };
 
@@ -129,7 +129,7 @@ const createPost = async (req, res) => {
   } catch (error) {
     await client.query('ROLLBACK');
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   } finally {
     client.release();
   }
@@ -212,7 +212,7 @@ const updatePost = async (req, res) => {
   } catch (error) {
     await client.query('ROLLBACK');
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   } finally {
     client.release();
   }
@@ -251,7 +251,7 @@ const deleteBulkPosts = async (req, res) => {
   } catch (error) {
     await client.query('ROLLBACK');
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   } finally {
     client.release();
   }

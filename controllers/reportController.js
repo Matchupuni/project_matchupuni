@@ -23,7 +23,7 @@ const submitReport = async (req, res) => {
     res.status(201).json({ message: 'Report submitted successfully', report: result.rows[0] });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 };
 

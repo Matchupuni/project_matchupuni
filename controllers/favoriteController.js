@@ -25,7 +25,7 @@ const getUserFavorites = async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 };
 
@@ -51,7 +51,7 @@ const toggleFavorite = async (req, res) => {
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 };
 

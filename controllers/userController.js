@@ -11,7 +11,7 @@ const getUsers = async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 };
 
@@ -39,7 +39,7 @@ const register = async (req, res) => {
     if (error.constraint === 'users_email_key') {
       return res.status(409).json({ error: 'Email already exists' });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 };
 
@@ -82,7 +82,7 @@ const login = async (req, res) => {
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 };
 
@@ -128,7 +128,7 @@ const updateProfile = async (req, res) => {
     res.json({ message: 'Profile updated successfully', user: result.rows[0] });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 };
 
@@ -162,7 +162,7 @@ const changePassword = async (req, res) => {
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 };
 
@@ -200,7 +200,7 @@ const deleteAccount = async (req, res) => {
     res.json({ message: 'Account deleted successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: error.message || 'Internal Server Error', stack: error.stack });
   }
 };
 
