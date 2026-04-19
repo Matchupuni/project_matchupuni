@@ -15,6 +15,7 @@ class _NotificationPageState extends State<NotificationPage> {
   List<dynamic> _chatList = [];
   Set<String> _readNotifications = {};
   bool _isLoading = true;
+  String? _currentUserId;
 
   @override
   void initState() {
@@ -26,6 +27,7 @@ class _NotificationPageState extends State<NotificationPage> {
   Future<void> _loadReadNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
+      _currentUserId = prefs.getString('user_id');
       _readNotifications = (prefs.getStringList('read_notifications') ?? [])
           .toSet();
     });
@@ -44,10 +46,18 @@ class _NotificationPageState extends State<NotificationPage> {
 
   Future<void> _fetchChatList() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentUserId = prefs.getString('user_id');
+
       final list = await ChatApiService.fetchChatList();
       if (mounted) {
         setState(() {
-          _chatList = list;
+          // Only show notifications for messages sent by OTHERS
+          _chatList = list
+              .where(
+                (chat) => chat['last_sender_id'].toString() != currentUserId,
+              )
+              .toList();
           _isLoading = false;
         });
       }
